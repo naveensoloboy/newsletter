@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Articles – NMS</title>
+  <link rel="stylesheet" href="../public/css/style.css">
+  <style>
+    /* ── Article Card ─────────────────────────────── */
+    .article-block {
+      background: #fff;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin-bottom: 24px;
+      overflow: hidden;
+      transition: border-color .2s;
+    }
+    .article-block:focus-within { border-color: var(--blue); }
+    .article-block-header {
+      background: linear-gradient(135deg, #f0f2fb, #e8ecf8);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .article-num {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--navy);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .article-num .num-badge {
+      width: 28px; height: 28px;
+      background: var(--navy);
+      color: #fff;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+    }
+    .article-block-body { padding: 20px; }
+
+    /* ── Image Gallery ────────────────────────────── */
+    .images-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .img-thumb {
+      position: relative;
+      border-radius: var(--radius);
+      overflow: hidden;
+      aspect-ratio: 4/3;
+      border: 2px solid var(--border);
+      background: #f5f5f8;
+    }
+    .img-thumb img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .img-thumb .remove-img {
+      position: absolute;
+      top: 4px; right: 4px;
+      background: rgba(180,0,0,.85);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 22px; height: 22px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    .img-thumb .img-uploading {
+      position: absolute; inset: 0;
+      background: rgba(255,255,255,.8);
+      display: grid;
+      place-items: center;
+    }
+    .add-image-btn {
+      aspect-ratio: 4/3;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: #fafafa;
+      transition: all .2s;
+    }
+    .add-image-btn:hover { border-color: var(--blue); background: #f0f4ff; color: var(--blue); }
+    .add-image-btn .plus { font-size: 22px; line-height: 1; }
+
+    /* ── Add Article Button ────────────────────────── */
+    .add-article-btn {
+      width: 100%;
+      padding: 16px;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-lg);
+      background: #fafafa;
+      color: var(--text-muted);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .add-article-btn:hover { border-color: var(--blue); background: #f0f4ff; color: var(--blue); }
+
+    /* ── Progress ─────────────────────────────────── */
+    .save-progress {
+      background: #f0f4ff;
+      border: 1px solid #c5d0f0;
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .save-progress .prog-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      padding: 4px 0;
+    }
+    .prog-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .prog-dot.pending  { background: #ccc; }
+    .prog-dot.active   { background: var(--blue); animation: pulse .8s infinite; }
+    .prog-dot.done     { background: var(--green); }
+    .prog-dot.error    { background: var(--red); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="../public/index.html" class="navbar-brand"><div class="brand-icon">📰</div><span>NMS Faculty</span></a>
+    <div class="navbar-actions" id="nav-user"></div>
+    <button class="navbar-toggle" id="sidebar-toggle"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<div class="dashboard-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Faculty Panel</div>
+      <ul class="sidebar-nav">
+        <li><a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a></li>
+        <li><a href="create-article.html" class="active"><span class="icon">✏️</span> Create Articles</a></li>
+        <li><a href="my-articles.html"><span class="icon">📄</span> My Articles</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section" style="margin-top:auto;padding-top:16px;border-top:1px solid var(--border)">
+      <ul class="sidebar-nav">
+        <li><a href="../public/index.html"><span class="icon">🌐</span> Public Site</a></li>
+        <li><a href="#" onclick="logout()"><span class="icon">🚪</span> Logout</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div style="max-width:820px">
+
+      <!-- Page Title -->
+      <div style="margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <h1 style="font-family:var(--font-display);font-size:28px">✏️ Create Articles</h1>
+          <p class="text-muted" style="margin-top:4px">Add multiple articles with multiple images for a newsletter.</p>
+        </div>
+        <div style="display:flex;gap:10px">
+          <span id="article-count-badge" style="background:#eef1fb;color:var(--blue);padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600">1 Article</span>
+        </div>
+      </div>
+
+      <!-- Newsletter Selection -->
+      <div class="card" style="margin-bottom:24px">
+        <div class="card-header"><h3 class="card-title">📋 Newsletter</h3></div>
+        <div class="card-body">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Select Newsletter <span class="required">*</span></label>
+            <select id="newsletter-select" class="form-control" onchange="onNewsletterChange()">
+              <option value="">— Select a newsletter —</option>
+              <option value="new">+ Create new newsletter</option>
+            </select>
+          </div>
+
+          <!-- New Newsletter Fields -->
+          <div id="new-newsletter-fields" class="hidden" style="background:#f8f9ff;border:1px solid #dde;border-radius:var(--radius);padding:20px;margin-top:16px">
+            <h4 style="font-family:var(--font-display);font-size:15px;margin-bottom:16px;color:var(--navy)">📋 New Newsletter Details</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Organization Name <span class="required">*</span></label>
+                <input type="text" id="n-org" class="form-control" placeholder="e.g. ABC College">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Department <span class="required">*</span></label>
+                <input type="text" id="n-dept" class="form-control" placeholder="e.g. Computer Science">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Newsletter Title <span class="required">*</span></label>
+                <input type="text" id="n-title" class="form-control" placeholder="e.g. CS Bulletin Vol. 5">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Edition</label>
+                <input type="text" id="n-edition" class="form-control" placeholder="e.g. Vol. 5, Issue 2">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Editor Name</label>
+                <input type="text" id="n-editor" class="form-control">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Publish Date</label>
+                <input type="date" id="n-date" class="form-control">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Headline</label>
+              <input type="text" id="n-headline" class="form-control" placeholder="Main headline for this edition">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Introduction</label>
+              <textarea id="n-intro" class="form-control" rows="3" placeholder="Brief introduction…"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Articles Container -->
+      <div id="articles-container"></div>
+
+      <!-- Add Article Button -->
+      <button class="add-article-btn" onclick="addArticle()">
+        <span style="font-size:20px">＋</span> Add Another Article
+      </button>
+
+      <!-- Save Progress -->
+      <div class="save-progress" id="save-progress">
+        <div style="font-weight:600;font-size:13px;margin-bottom:8px;color:var(--navy)">⏳ Saving articles…</div>
+        <div id="progress-list"></div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-lg" onclick="saveAllDraft()">💾 Save All as Draft</button>
+        <button class="btn btn-primary btn-lg" onclick="saveAllAndSubmit()">📤 Save & Submit All for Review</button>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="../public/js/api.js"></script>
+<script>
+Auth.requireAuth('../public/login.html');
+if (!Auth.isFaculty() && !Auth.isAdmin()) window.location.href = '../public/login.html';
+
+const user   = Auth.getUser();
+let articleCounter = 0;   // unique ID per article block
+let articles = [];        // array of { id, images:[] }
+
+/* ── Init ─────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  loadNewsletters();
+  addArticle(); // start with 1 article
+});
+
+/* ── Newsletter ────────────────────────────────────── */
+async function loadNewsletters() {
+  try {
+    const newsletters = await apiFetch('/newsletters/');
+    const sel   = document.getElementById('newsletter-select');
+    const drafts = newsletters.filter(n => ['draft','submitted'].includes(n.status));
+    drafts.forEach(n => {
+      const opt = document.createElement('option');
+      opt.value = n.id;
+      opt.textContent = `${n.newsletter_title} (${n.edition||''}) – ${n.status}`;
+      sel.insertBefore(opt, sel.lastElementChild);
+    });
+  } catch {}
+}
+
+function onNewsletterChange() {
+  const val = document.getElementById('newsletter-select').value;
+  document.getElementById('new-newsletter-fields').classList.toggle('hidden', val !== 'new');
+}
+
+async function getOrCreateNewsletter() {
+  const sel = document.getElementById('newsletter-select').value;
+  if (!sel) throw new Error('Please select or create a newsletter');
+  if (sel !== 'new') return sel;
+  const org   = document.getElementById('n-org').value.trim();
+  const dept  = document.getElementById('n-dept').value.trim();
+  const title = document.getElementById('n-title').value.trim();
+  if (!org || !dept || !title) throw new Error('Fill Newsletter Title, Organization and Department');
+  const data = {
+    organization_name: org, department: dept, newsletter_title: title,
+    edition:      document.getElementById('n-edition').value.trim(),
+    editor_name:  document.getElementById('n-editor').value.trim(),
+    publish_date: document.getElementById('n-date').value,
+    headline:     document.getElementById('n-headline').value.trim(),
+    intro_content:document.getElementById('n-intro').value.trim()
+  };
+  const res = await apiFetch('/newsletters/', { method:'POST', body: JSON.stringify(data) });
+  return res.id;
+}
+
+/* ── Add Article Block ─────────────────────────────── */
+function addArticle() {
+  articleCounter++;
+  const id = articleCounter;
+  articles.push({ id, images: [] });
+
+  const container = document.getElementById('articles-container');
+  const block     = document.createElement('div');
+  block.className = 'article-block fade-in';
+  block.id        = `article-block-${id}`;
+
+  block.innerHTML = `
+    <div class="article-block-header">
+      <div class="article-num">
+        <span class="num-badge">${id}</span>
+        Article ${id}
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="status-${id}" style="font-size:12px;color:var(--text-muted)"></span>
+        ${id > 1 ? `<button class="btn btn-danger btn-sm" onclick="removeArticle(${id})">🗑 Remove</button>` : ''}
+      </div>
+    </div>
+    <div class="article-block-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Article Title <span class="required">*</span></label>
+          <input type="text" id="title-${id}" class="form-control" placeholder="Enter article title">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Author Name <span class="required">*</span></label>
+          <input type="text" id="author-${id}" class="form-control" placeholder="Full name" value="${user?.name||''}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Article Content <span class="required">*</span></label>
+        <textarea id="content-${id}" class="form-control" rows="8" placeholder="Write your article content here…"></textarea>
+      </div>
+
+      <!-- Images Section -->
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">
+          Images
+          <span style="font-size:11px;color:var(--text-muted);font-weight:400;margin-left:6px">Upload multiple images for this article</span>
+        </label>
+        <div class="images-grid" id="images-grid-${id}">
+          <!-- Add image button -->
+          <div class="add-image-btn" onclick="triggerImagePick(${id})">
+            <span class="plus">🖼</span>
+            <span>Add Image</span>
+          </div>
+        </div>
+        <input type="file" id="img-input-${id}" accept="image/*" multiple style="display:none" onchange="handleImages(event,${id})">
+      </div>
+    </div>`;
+
+  container.appendChild(block);
+  updateCounter();
+
+  // Drag and drop on the images grid
+  const grid = document.getElementById(`images-grid-${id}`);
+  grid.addEventListener('dragover', e => { e.preventDefault(); grid.style.outline = '2px dashed var(--blue)'; });
+  grid.addEventListener('dragleave', () => { grid.style.outline = ''; });
+  grid.addEventListener('drop', e => {
+    e.preventDefault();
+    grid.style.outline = '';
+    const files = [...e.dataTransfer.files].filter(f => f.type.startsWith('image/'));
+    if (files.length) uploadImages(files, id);
+  });
+}
+
+function removeArticle(id) {
+  document.getElementById(`article-block-${id}`)?.remove();
+  articles = articles.filter(a => a.id !== id);
+  updateCounter();
+  toast(`Article ${id} removed`, 'info');
+}
+
+function updateCounter() {
+  const count = document.querySelectorAll('.article-block').length;
+  document.getElementById('article-count-badge').textContent = `${count} Article${count!==1?'s':''}`;
+}
+
+/* ── Image Handling ────────────────────────────────── */
+function triggerImagePick(articleId) {
+  document.getElementById(`img-input-${articleId}`).click();
+}
+
+async function handleImages(e, articleId) {
+  const files = [...e.target.files];
+  if (!files.length) return;
+  await uploadImages(files, articleId);
+  e.target.value = ''; // reset so same file can be picked again
+}
+
+async function uploadImages(files, articleId) {
+  const articleData = articles.find(a => a.id === articleId);
+  if (!articleData) return;
+
+  for (const file of files) {
+    // Add a loading placeholder
+    const placeholderId = `img-ph-${articleId}-${Date.now()}`;
+    addImagePlaceholder(articleId, placeholderId);
+
+    try {
+      const url = await uploadImage(file);
+      articleData.images.push(url);
+      replacePlaceholderWithThumb(articleId, placeholderId, url);
+    } catch (err) {
+      removePlaceholder(placeholderId);
+      toast(`Failed to upload ${file.name}: ${err.message}`, 'error');
+    }
+  }
+}
+
+function addImagePlaceholder(articleId, placeholderId) {
+  const grid = document.getElementById(`images-grid-${articleId}`);
+  const addBtn = grid.querySelector('.add-image-btn');
+  const ph = document.createElement('div');
+  ph.className = 'img-thumb';
+  ph.id = placeholderId;
+  ph.innerHTML = `<div class="img-uploading"><div class="spinner"></div></div>`;
+  grid.insertBefore(ph, addBtn);
+}
+
+function replacePlaceholderWithThumb(articleId, placeholderId, url) {
+  const ph = document.getElementById(placeholderId);
+  if (!ph) return;
+  ph.innerHTML = `
+    <img src="http://localhost/newsletter_php/backend${url}" alt="Article image">
+    <button class="remove-img" onclick="removeImage(${articleId},'${url}',this.parentElement)" title="Remove image">×</button>`;
+}
+
+function removePlaceholder(placeholderId) {
+  document.getElementById(placeholderId)?.remove();
+}
+
+function removeImage(articleId, url, thumbEl) {
+  const articleData = articles.find(a => a.id === articleId);
+  if (articleData) articleData.images = articleData.images.filter(u => u !== url);
+  thumbEl?.remove();
+  toast('Image removed', 'info');
+}
+
+/* ── Validate Articles ─────────────────────────────── */
+function getArticleData(id) {
+  return {
+    title:   document.getElementById(`title-${id}`)?.value.trim()   || '',
+    author:  document.getElementById(`author-${id}`)?.value.trim()  || '',
+    content: document.getElementById(`content-${id}`)?.value.trim() || '',
+    images:  articles.find(a => a.id === id)?.images || []
+  };
+}
+
+function validateAll() {
+  const blocks = [...document.querySelectorAll('.article-block')];
+  for (const block of blocks) {
+    const id = parseInt(block.id.replace('article-block-', ''));
+    const d  = getArticleData(id);
+    if (!d.title)   { toast(`Article ${id}: Title is required`,   'warn'); return false; }
+    if (!d.author)  { toast(`Article ${id}: Author is required`,  'warn'); return false; }
+    if (!d.content) { toast(`Article ${id}: Content is required`, 'warn'); return false; }
+  }
+  return true;
+}
+
+/* ── Progress UI ───────────────────────────────────── */
+function showProgress(items) {
+  const box  = document.getElementById('save-progress');
+  const list = document.getElementById('progress-list');
+  box.style.display = 'block';
+  list.innerHTML = items.map(item => `
+    <div class="prog-row" id="prog-row-${item.id}">
+      <div class="prog-dot pending" id="prog-dot-${item.id}"></div>
+      <span id="prog-label-${item.id}">${item.label}</span>
+    </div>`).join('');
+}
+
+function setProgress(id, state, label) {
+  const dot   = document.getElementById(`prog-dot-${id}`);
+  const lbl   = document.getElementById(`prog-label-${id}`);
+  if (dot) { dot.className = `prog-dot ${state}`; }
+  if (lbl && label) lbl.textContent = label;
+}
+
+function hideProgress() {
+  document.getElementById('save-progress').style.display = 'none';
+}
+
+/* ── Save All Articles ─────────────────────────────── */
+async function saveAll(submit = false) {
+  if (!validateAll()) return;
+
+  const blocks = [...document.querySelectorAll('.article-block')];
+  const ids    = blocks.map(b => parseInt(b.id.replace('article-block-', '')));
+
+  // Build progress items
+  const progressItems = [
+    { id: 'newsletter', label: '📋 Setting up newsletter…' },
+    ...ids.map(id => ({ id: `art-${id}`, label: `📝 Saving Article ${id}…` }))
+  ];
+  showProgress(progressItems);
+  setProgress('newsletter', 'active');
+
+  let newsletterId;
+  try {
+    newsletterId = await getOrCreateNewsletter();
+    setProgress('newsletter', 'done', '✅ Newsletter ready');
+  } catch (e) {
+    setProgress('newsletter', 'error', `❌ ${e.message}`);
+    toast(e.message, 'error');
+    return;
+  }
+
+  let savedCount = 0;
+  let failCount  = 0;
+
+  for (const id of ids) {
+    setProgress(`art-${id}`, 'active', `⏳ Saving Article ${id}…`);
+    const d = getArticleData(id);
+
+    // Use first image as primary (API stores one image field)
+    // We'll store all images as JSON in the image field
+    const imageValue = d.images.length > 0 ? JSON.stringify(d.images) : '';
+
+    try {
+      const res = await apiFetch('/articles/', {
+        method: 'POST',
+        body: JSON.stringify({
+          newsletter_id: newsletterId,
+          title:   d.title,
+          author:  d.author,
+          content: d.content,
+          image:   imageValue
+        })
+      });
+
+      if (submit && res.id) {
+        await apiFetch(`/articles/${res.id}/submit`, { method: 'POST' });
+        setProgress(`art-${id}`, 'done', `✅ Article ${id} submitted`);
+      } else {
+        setProgress(`art-${id}`, 'done', `✅ Article ${id} saved as draft`);
+      }
+
+      // Mark article block as saved
+      const statusEl = document.getElementById(`status-${id}`);
+      if (statusEl) statusEl.innerHTML = `<span class="badge badge-${submit?'submitted':'draft'}">${submit?'Submitted':'Draft'}</span>`;
+      savedCount++;
+    } catch (e) {
+      setProgress(`art-${id}`, 'error', `❌ Article ${id} failed: ${e.message}`);
+      failCount++;
+    }
+  }
+
+  // Done
+  setTimeout(() => {
+    hideProgress();
+    if (failCount === 0) {
+      toast(`🎉 All ${savedCount} article${savedCount!==1?'s':''} ${submit?'submitted':'saved'}!`, 'success');
+      setTimeout(() => window.location.href = 'my-articles.html', 1200);
+    } else {
+      toast(`${savedCount} saved, ${failCount} failed. Check errors above.`, 'warn');
+    }
+  }, 800);
+}
+
+async function saveAllDraft()     { await saveAll(false); }
+async function saveAllAndSubmit() { await saveAll(true);  }
+</script>
+</body>
+</html>

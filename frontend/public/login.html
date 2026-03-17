@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login – Newsletter Management System</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { background: linear-gradient(135deg, #0f1f4b 0%, #0a1530 100%); }
+    .auth-page { min-height: 100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+    .brand-strip { text-align:center; margin-bottom:24px; }
+    .brand-strip h1 { font-family:var(--font-display); color:#fff; font-size:26px; }
+    .brand-strip p  { color:rgba(255,255,255,.5); font-size:13px; margin-top:4px; }
+    .role-hint { background:#f0f4ff; border-radius:8px; padding:10px 14px; font-size:12px; color:#3949ab; margin-bottom:16px; }
+  </style>
+</head>
+<body>
+<div class="auth-page">
+  <div style="width:100%;max-width:420px">
+    <div class="brand-strip">
+      <div style="font-size:40px;margin-bottom:10px">📰</div>
+      <h1>Newsletter Management System</h1>
+      <p>Digital newsletter platform for colleges & organizations</p>
+    </div>
+
+    <div class="auth-card fade-in">
+      <div class="auth-card-header">
+        <div class="logo">🔐</div>
+        <h2>Welcome Back</h2>
+        <p>Sign in to your account</p>
+      </div>
+      <div class="auth-card-body">
+        <div class="auth-tabs">
+          <button class="auth-tab active" onclick="switchTab('login')">Login</button>
+          <button class="auth-tab" onclick="switchTab('register')">Register</button>
+        </div>
+
+        <!-- Login Form -->
+        <div id="login-form">
+          <!-- <div class="role-hint">🔑 Admin: admin@college.edu / Admin@123</div> -->
+          <div class="form-group">
+            <label class="form-label">Email Address <span class="required">*</span></label>
+            <input type="email" id="login-email" class="form-control" placeholder="you@college.edu">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password <span class="required">*</span></label>
+            <input type="password" id="login-password" class="form-control" placeholder="••••••••">
+          </div>
+          <button class="btn btn-primary w-full" onclick="doLogin()" id="login-btn">
+            <span>Sign In</span>
+          </button>
+        </div>
+
+        <!-- Register Form -->
+        <div id="register-form" class="hidden">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Full Name <span class="required">*</span></label>
+              <input type="text" id="reg-name" class="form-control" placeholder="Dr. Jane Smith">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Department <span class="required">*</span></label>
+              <input type="text" id="reg-dept" class="form-control" placeholder="Computer Science">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address <span class="required">*</span></label>
+            <input type="email" id="reg-email" class="form-control" placeholder="you@college.edu">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password <span class="required">*</span></label>
+            <input type="password" id="reg-password" class="form-control" placeholder="Min. 6 characters">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Role</label>
+            <select id="reg-role" class="form-control">
+              <option value="faculty">Faculty (Content Creator)</option>
+            </select>
+            <p class="form-hint">Only admin can create admin accounts.</p>
+          </div>
+          <button class="btn btn-primary w-full" onclick="doRegister()" id="reg-btn">
+            Create Account
+          </button>
+        </div>
+
+        <p style="text-align:center;margin-top:20px;font-size:13px;color:var(--text-muted)">
+          Public users — <a href="index.html" style="color:var(--blue)">browse newsletters here</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (tab==='login'?i===0:i===1)));
+  document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+}
+
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!email || !password) { toast('Please fill in all fields', 'warn'); return; }
+  const btn = document.getElementById('login-btn');
+  btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px"></span> Signing in…';
+  btn.disabled = true;
+  try {
+    const data = await apiFetch('/auth/login', { method:'POST', body: JSON.stringify({email, password}) });
+    Auth.setSession(data.token, data.user);
+    toast('Login successful! Redirecting…', 'success');
+    setTimeout(() => {
+      if (data.user.role === 'admin')    window.location.href = '../admin/dashboard.html';
+      else if (data.user.role === 'faculty') window.location.href = '../faculty/dashboard.html';
+    }, 800);
+  } catch(e) {
+    toast(e.message || 'Login failed', 'error');
+    btn.innerHTML = '<span>Sign In</span>';
+    btn.disabled = false;
+  }
+}
+
+async function doRegister() {
+  const name     = document.getElementById('reg-name').value.trim();
+  const email    = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const dept     = document.getElementById('reg-dept').value.trim();
+  const role     = document.getElementById('reg-role').value;
+  if (!name || !email || !password || !dept) { toast('Please fill in all fields', 'warn'); return; }
+  if (password.length < 6) { toast('Password must be at least 6 characters', 'warn'); return; }
+  const btn = document.getElementById('reg-btn');
+  btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px"></span> Creating…';
+  btn.disabled = true;
+  try {
+    await apiFetch('/auth/register', { method:'POST', body: JSON.stringify({name,email,password,role,department:dept}) });
+    toast('Account created! Please login.', 'success');
+    switchTab('login');
+    document.getElementById('login-email').value = email;
+  } catch(e) {
+    toast(e.message || 'Registration failed', 'error');
+  }
+  btn.innerHTML = 'Create Account';
+  btn.disabled = false;
+}
+
+// Enter key support
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (!document.getElementById('login-form').classList.contains('hidden')) doLogin();
+    else doRegister();
+  }
+});
+
+// Redirect if already logged in
+if (Auth.isLoggedIn()) {
+  const u = Auth.getUser();
+  if (u?.role === 'admin') window.location.href = '../admin/dashboard.html';
+  else if (u?.role === 'faculty') window.location.href = '../faculty/dashboard.html';
+}
+</script>
+</body>
+</html>

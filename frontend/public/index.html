@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Newsletter Archive – Newsletter Management System</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .newsletter-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:24px; }
+    .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+    .section-header h2 { font-family:var(--font-display); font-size:26px; }
+    .divider { width:60px; height:4px; background:var(--accent); border-radius:2px; margin:8px 0 0; }
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="index.html" class="navbar-brand">
+      <div class="brand-icon">📰</div>
+      <span>NMS</span>
+    </a>
+    <ul class="navbar-nav">
+      <li><a href="index.html" class="active">🏠 Home</a></li>
+      <li><a href="search.html">🔍 Search</a></li>
+    </ul>
+    <div class="navbar-actions" id="nav-user"></div>
+    <button class="navbar-toggle" id="sidebar-toggle">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-eyebrow">Digital Newsletter Platform</div>
+    <h1 class="hero-title">College Newsletter<br>Archive</h1>
+    <p class="hero-sub">Stay informed with the latest news, achievements, and updates from our departments.</p>
+    <div class="hero-actions">
+      <a href="search.html" class="btn btn-accent btn-lg">🔍 Search Newsletters</a>
+      <a href="login.html" class="btn btn-outline btn-lg" style="border-color:rgba(255,255,255,.4);color:#fff">Login to Contribute</a>
+    </div>
+  </div>
+</section>
+
+<!-- Filters -->
+<div style="background:var(--bg-card);border-bottom:1px solid var(--border);padding:0 24px;">
+  <div class="container">
+    <div class="filter-strip" id="dept-filters">
+      <button class="filter-btn active" onclick="filterDept('')" data-dept="">All Departments</button>
+    </div>
+  </div>
+</div>
+
+<!-- Newsletter Grid -->
+<main style="padding:48px 0">
+  <div class="container">
+    <div class="section-header">
+      <div>
+        <h2>Published Newsletters</h2>
+        <div class="divider"></div>
+      </div>
+      <span id="count-label" class="text-muted" style="font-size:14px"></span>
+    </div>
+    <div id="newsletter-grid" class="newsletter-grid stagger">
+      <div class="empty-state">
+        <div class="spinner" style="margin:0 auto 16px"></div>
+        <p>Loading newsletters…</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Subscribe Strip -->
+<section class="subscribe-strip">
+  <div class="container">
+    <h2>Subscribe for Updates</h2>
+    <p>Get notified when new newsletters are published</p>
+    <div class="subscribe-form">
+      <input type="email" id="sub-email" placeholder="Enter your email address">
+      <button onclick="subscribe()">Subscribe</button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>© 2025 Newsletter Management System. Built for colleges & organizations.</p>
+</footer>
+
+<script src="js/api.js"></script>
+<script>
+let allNewsletters = [];
+let currentDept = '';
+
+async function loadDepartments() {
+  try {
+    const depts = await apiFetch('/public/departments');
+    const strip = document.getElementById('dept-filters');
+    depts.forEach(d => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn';
+      btn.dataset.dept = d;
+      btn.textContent = d;
+      btn.onclick = () => filterDept(d);
+      strip.appendChild(btn);
+    });
+  } catch {}
+}
+
+async function loadNewsletters(dept = '', search = '') {
+  const grid = document.getElementById('newsletter-grid');
+  grid.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto 16px"></div><p>Loading…</p></div>';
+  try {
+    let url = '/public/newsletters';
+    const params = new URLSearchParams();
+    if (dept)   params.set('department', dept);
+    if (search) params.set('search', search);
+    if ([...params].length) url += '?' + params;
+    allNewsletters = await apiFetch(url);
+    renderGrid(allNewsletters);
+  } catch(e) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`;
+  }
+}
+
+function renderGrid(newsletters) {
+  const grid = document.getElementById('newsletter-grid');
+  document.getElementById('count-label').textContent = `${newsletters.length} newsletter${newsletters.length!==1?'s':''}`;
+  if (!newsletters.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📭</div><h3>No newsletters found</h3><p>Check back later for new publications.</p></div>';
+    return;
+  }
+  grid.innerHTML = newsletters.map(n => `
+    <div class="newsletter-card fade-in" onclick="readNewsletter('${n.id}')">
+      <div class="card-cover">
+        <span class="edition-badge">${n.edition || 'Vol.1'}</span>
+        <h3>${n.newsletter_title}</h3>
+      </div>
+      <div class="card-body">
+        <span class="dept-tag">${n.department || 'General'}</span>
+        <p class="headline">${n.headline || n.intro_content || 'Click to read the full newsletter.'}</p>
+        <div class="card-meta">
+          <span>📅 ${n.publish_date || formatDate(n.created_at)}</span>
+          <span>✍️ ${n.editor_name || 'Editor'}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function filterDept(dept) {
+  currentDept = dept;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.dept === dept));
+  loadNewsletters(dept);
+}
+
+function readNewsletter(id) {
+  window.location.href = `newsletter.html?id=${id}`;
+}
+
+async function subscribe() {
+  const email = document.getElementById('sub-email').value.trim();
+  if (!email) { toast('Please enter your email', 'warn'); return; }
+  try {
+    await apiFetch('/public/subscribe', { method:'POST', body: JSON.stringify({email}) });
+    toast('Subscribed successfully! 🎉', 'success');
+    document.getElementById('sub-email').value = '';
+  } catch(e) {
+    toast(e.message, 'error');
+  }
+}
+
+loadDepartments();
+loadNewsletters();
+</script>
+</body>
+</html>
+
+
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Newsletter Archive | College Digital Library</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #064e3b; /* Deep Emerald */
+      --primary-light: #065f46;
+      --accent: #d97706; /* Golden Amber */
+      --bg: #f8fafc;
+      --white: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --glass: rgba(255, 255, 255, 0.8);
+      --border: rgba(226, 232, 240, 0.8);
+      --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    * { box-sizing: border-box; transition: all 0.3s ease; }
+
+    body {
+      margin: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.6;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+    /* --- NAVBAR --- */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+    }
+
+    .navbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .navbar-brand {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 20px;
+      color: var(--primary);
+      letter-spacing: -0.5px;
+    }
+
+    .brand-icon { margin-right: 10px; font-size: 24px; }
+
+    .navbar-nav {
+      list-style: none;
+      display: flex;
+      gap: 32px;
+      margin: 0;
+      padding: 0;
+    }
+
+    .navbar-nav a {
+      text-decoration: none;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .navbar-nav a.active, .navbar-nav a:hover { color: var(--primary); }
+
+    /* --- HERO --- */
+    .hero {
+      background: var(--primary);
+      background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
+      color: white;
+      padding: 100px 0 140px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      clip-path: ellipse(150% 100% at 50% 0%);
+    }
+
+    .hero-eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    .hero-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      line-height: 1.1;
+      margin: 0 0 24px;
+    }
+
+    .hero-sub {
+      max-width: 600px;
+      margin: 0 auto 40px;
+      font-size: 18px;
+      opacity: 0.9;
+      font-weight: 300;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 14px 32px;
+      border-radius: 50px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .btn-accent { background: var(--accent); color: white; box-shadow: 0 10px 20px rgba(217, 119, 6, 0.3); }
+    .btn-accent:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(217, 119, 6, 0.4); }
+    
+    .btn-outline { border: 2px solid rgba(255,255,255,0.3); margin-left: 12px; }
+    .btn-outline:hover { background: white; color: var(--primary) !important; }
+
+    /* --- FILTERS --- */
+    .filter-wrapper {
+      margin-top: -40px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .filter-strip {
+      background: var(--white);
+      padding: 12px;
+      border-radius: 16px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    .filter-btn {
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-weight: 700;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .filter-btn.active { background: var(--primary); color: white; }
+
+    /* --- GRID & CARDS --- */
+    .section-header { margin: 60px 0 40px; }
+    .section-header h2 { font-family: 'Playfair Display', serif; font-size: 32px; margin: 0; }
+    .divider { width: 60px; height: 5px; background: var(--accent); border-radius: 10px; margin-top: 10px; }
+
+    .newsletter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 32px;
+    }
+
+    .newsletter-card {
+      background: var(--white);
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .newsletter-card:hover {
+      transform: translateY(-12px);
+      box-shadow: 0 30px 60px rgba(0,0,0,0.08);
+      border-color: var(--primary-light);
+    }
+
+    .card-cover {
+      height: 180px;
+      background: var(--primary);
+      background: linear-gradient(45deg, var(--primary), var(--primary-light));
+      padding: 30px;
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+    }
+
+    .edition-badge {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(5px);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 50px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .card-cover h3 {
+      color: white;
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    .card-body { padding: 24px; flex-grow: 1; display: flex; flex-direction: column; }
+
+    .dept-tag {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .headline {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-meta {
+      margin-top: auto;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* --- SUBSCRIBE STRIP --- */
+    .subscribe-strip {
+      background: var(--white);
+      padding: 80px 0;
+      margin-top: 100px;
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+
+    .subscribe-strip h2 { font-family: 'Playfair Display', serif; font-size: 32px; margin: 0 0 10px; }
+    
+    .subscribe-form {
+      max-width: 500px;
+      margin: 40px auto 0;
+      display: flex;
+      background: var(--bg);
+      padding: 8px;
+      border-radius: 50px;
+      border: 1px solid var(--border);
+    }
+
+    .subscribe-form input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 0 20px;
+      outline: none;
+      font-family: inherit;
+      font-size: 15px;
+    }
+
+    .subscribe-form button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 50px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    footer {
+      padding: 40px 0;
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-muted);
+      background: var(--white);
+    }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .hero { padding: 60px 0 100px; }
+      .navbar-nav { display: none; }
+      .hero-actions { display: flex; flex-direction: column; gap: 12px; padding: 0 20px; }
+      .btn-outline { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="index.html" class="navbar-brand">
+      <div class="brand-icon">🏛️</div>
+      <span>GASC ARCHIVE</span>
+    </a>
+    <ul class="navbar-nav">
+      <li><a href="index.html" class="active">Home</a></li>
+      <li><a href="search.html">Search</a></li>
+      <li><a href="login.html">Editorial Login</a></li>
+    </ul>
+    <div id="nav-user"></div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-eyebrow">Academic Publication Portal</div>
+    <h1 class="hero-title">Digital Library &<br>Newsletter Archive</h1>
+    <p class="hero-sub">Explore the heritage and academic progress through our curated departmental publications.</p>
+    <div class="hero-actions">
+      <a href="search.html" class="btn btn-accent">🔍 Find Publication</a>
+      <a href="login.html" class="btn btn-outline">Contribute</a>
+    </div>
+  </div>
+</section>
+
+<div class="filter-wrapper">
+  <div class="container">
+    <div class="filter-strip" id="dept-filters">
+      <button class="filter-btn active" onclick="filterDept('')" data-dept="">All Departments</button>
+    </div>
+  </div>
+</div>
+
+<main style="padding:48px 0">
+  <div class="container">
+    <div class="section-header">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; width: 100%;">
+        <div>
+          <h2>Recent Publications</h2>
+          <div class="divider"></div>
+        </div>
+        <span id="count-label" class="text-muted" style="font-size:14px; font-weight:700"></span>
+      </div>
+    </div>
+    
+    <div id="newsletter-grid" class="newsletter-grid">
+        </div>
+  </div>
+</main>
+
+<section class="subscribe-strip">
+  <div class="container">
+    <h2>Subscribe to the Archive</h2>
+    <p>Stay updated with monthly achievements and academic milestones.</p>
+    <div class="subscribe-form">
+      <input type="email" id="sub-email" placeholder="Your email address">
+      <button onclick="subscribe()">Join Now</button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>© 2026 Gobi Arts & Science College. All academic rights reserved.</p>
+</footer>
+
+<script src="js/api.js"></script>
+<script>
+let allNewsletters = [];
+let currentDept = '';
+
+async function loadDepartments() {
+  try {
+    const depts = await apiFetch('/public/departments');
+    const strip = document.getElementById('dept-filters');
+    depts.forEach(d => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn';
+      btn.dataset.dept = d;
+      btn.textContent = d;
+      btn.onclick = () => filterDept(d);
+      strip.appendChild(btn);
+    });
+  } catch {}
+}
+
+async function loadNewsletters(dept = '', search = '') {
+  const grid = document.getElementById('newsletter-grid');
+  grid.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto 16px"></div><p>Loading…</p></div>';
+  try {
+    let url = '/public/newsletters';
+    const params = new URLSearchParams();
+    if (dept)   params.set('department', dept);
+    if (search) params.set('search', search);
+    if ([...params].length) url += '?' + params;
+    allNewsletters = await apiFetch(url);
+    renderGrid(allNewsletters);
+  } catch(e) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`;
+  }
+}
+
+function renderGrid(newsletters) {
+  const grid = document.getElementById('newsletter-grid');
+  document.getElementById('count-label').textContent = `${newsletters.length} newsletter${newsletters.length!==1?'s':''}`;
+  if (!newsletters.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📭</div><h3>No newsletters found</h3><p>Check back later for new publications.</p></div>';
+    return;
+  }
+  grid.innerHTML = newsletters.map(n => `
+    <div class="newsletter-card fade-in" onclick="readNewsletter('${n.id}')">
+      <div class="card-cover">
+        <span class="edition-badge">${n.edition || 'Vol.1'}</span>
+        <h3>${n.newsletter_title}</h3>
+      </div>
+      <div class="card-body">
+        <span class="dept-tag">${n.department || 'General'}</span>
+        <p class="headline">${n.headline || n.intro_content || 'Click to read the full newsletter.'}</p>
+        <div class="card-meta">
+          <span>📅 ${n.publish_date || formatDate(n.created_at)}</span>
+          <span>✍️ ${n.editor_name || 'Editor'}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function filterDept(dept) {
+  currentDept = dept;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.dept === dept));
+  loadNewsletters(dept);
+}
+
+function readNewsletter(id) {
+  window.location.href = `newsletter.html?id=${id}`;
+}
+
+async function subscribe() {
+  const email = document.getElementById('sub-email').value.trim();
+  if (!email) { toast('Please enter your email', 'warn'); return; }
+  try {
+    await apiFetch('/public/subscribe', { method:'POST', body: JSON.stringify({email}) });
+    toast('Subscribed successfully! 🎉', 'success');
+    document.getElementById('sub-email').value = '';
+  } catch(e) {
+    toast(e.message, 'error');
+  }
+}
+
+loadDepartments();
+loadNewsletters();
+</script>
+
+</body>
+</html>  -->

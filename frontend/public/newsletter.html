@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Newsletter – NMS</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <!-- ── Screen Styles ─────────────────────────────── -->
+  <style>
+    /* ── Magazine Layout ───────────────────────────── */
+    #nl-page {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      box-shadow: 0 0 60px rgba(0,0,0,.12);
+    }
+
+    /* ── Cover Page ────────────────────────────────── */
+    .nl-cover {
+      background: linear-gradient(160deg, #0b1a3e 0%, #1a3370 55%, #0f2858 100%);
+      color: #fff;
+      padding: 0;
+      position: relative;
+      overflow: hidden;
+      min-height: 320px;
+    }
+    .nl-cover-pattern {
+      position: absolute; inset: 0;
+      background-image:
+        radial-gradient(circle at 80% 20%, rgba(200,150,42,.18) 0, transparent 50%),
+        radial-gradient(circle at 10% 80%, rgba(100,140,255,.12) 0, transparent 40%);
+    }
+    .nl-cover-inner {
+      position: relative; z-index: 1;
+      padding: 48px 52px 40px;
+    }
+    .nl-cover-top {
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,.2);
+      padding-bottom: 16px; margin-bottom: 28px;
+    }
+    .nl-cover-org {
+      font-size: 13px; font-weight: 700; letter-spacing: .18em;
+      text-transform: uppercase; color: #c8d8ff; font-family: 'DM Sans', sans-serif;
+    }
+    .nl-cover-meta {
+      font-size: 12px; color: rgba(255,255,255,.6);
+      font-family: 'DM Sans', sans-serif; text-align: right; line-height: 1.8;
+    }
+    .nl-cover-dept {
+      display: inline-block;
+      background: rgba(200,150,42,.9); color: #fff;
+      font-size: 11px; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; padding: 4px 14px; border-radius: 20px;
+      margin-bottom: 16px; font-family: 'DM Sans', sans-serif;
+    }
+    .nl-cover-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(32px, 5vw, 54px);
+      font-weight: 900; line-height: 1.08;
+      letter-spacing: -.01em; margin-bottom: 20px;
+      text-shadow: 0 2px 12px rgba(0,0,0,.3);
+    }
+    .nl-cover-headline {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 17px; font-style: italic; font-weight: 300;
+      color: rgba(255,255,255,.82); line-height: 1.65;
+      max-width: 600px; border-left: 3px solid rgba(200,150,42,.8);
+      padding-left: 16px;
+    }
+    .nl-cover-stripe {
+      height: 6px;
+      background: linear-gradient(90deg, #c8962a 0%, #f0c060 50%, #c8962a 100%);
+    }
+
+    /* ── Body ──────────────────────────────────────── */
+    .nl-body { padding: 0 52px 52px; }
+
+    /* ── Section Title ─────────────────────────────── */
+    .nl-section { margin-top: 48px; }
+    .nl-section-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .22em; text-transform: uppercase;
+      color: #0b1a3e;
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 20px;
+    }
+    .nl-section-title::before {
+      content: ''; display: block;
+      width: 32px; height: 3px;
+      background: #c8962a; border-radius: 2px; flex-shrink: 0;
+    }
+    .nl-section-title::after {
+      content: ''; flex: 1; height: 1px; background: #e8e4dc;
+    }
+
+    /* ── Intro ─────────────────────────────────────── */
+    .nl-intro {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 16px; line-height: 1.9; color: #2a2a3e;
+      border-left: 4px solid #0b1a3e;
+      padding: 16px 20px; background: #f7f6f2;
+      border-radius: 0 8px 8px 0; margin-top: 0;
+    }
+
+    /* ── Article Card ──────────────────────────────── */
+    .nl-article {
+      margin-bottom: 40px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid #e8e4dc;
+    }
+    .nl-article:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+    .nl-article-header {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; gap: 12px;
+      margin-bottom: 14px;
+    }
+    .nl-article-num {
+      width: 36px; height: 36px; flex-shrink: 0;
+      background: #0b1a3e; color: #fff;
+      border-radius: 50%; display: grid; place-items: center;
+      font-family: 'Playfair Display', serif; font-size: 14px; font-weight: 700;
+    }
+    .nl-article-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 22px; font-weight: 700; color: #0b1a3e;
+      line-height: 1.25; flex: 1;
+    }
+    .nl-article-byline {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase; color: #c8962a;
+      margin-bottom: 16px;
+    }
+    .nl-article-body {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 15px; line-height: 1.9; color: #333;
+      white-space: pre-wrap;
+    }
+
+    /* Article Images */
+    .nl-article-img-single {
+      width: 100%; max-height: 340px; object-fit: cover;
+      border-radius: 8px; margin-bottom: 18px;
+      border: 1px solid #e8e4dc;
+    }
+    .nl-article-img-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px; margin-bottom: 18px;
+    }
+    .nl-article-img-grid img {
+      width: 100%; height: 160px; object-fit: cover;
+      border-radius: 8px; border: 1px solid #e8e4dc;
+      cursor: pointer; transition: transform .2s;
+    }
+    .nl-article-img-grid img:hover { transform: scale(1.02); }
+
+    /* ── 2-Column Articles ─────────────────────────── */
+    .nl-articles-2col {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 32px;
+    }
+    @media(max-width:640px) { .nl-articles-2col { grid-template-columns: 1fr; } }
+
+    /* ── Achievements ──────────────────────────────── */
+    .nl-achievements {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    }
+    @media(max-width:600px) { .nl-achievements { grid-template-columns: 1fr; } }
+    .nl-achievement-box {
+      background: #f7f6f2; border-radius: 10px;
+      padding: 22px; border: 1px solid #e8e4dc;
+      border-top: 4px solid #0b1a3e;
+    }
+    .nl-achievement-box.gold { border-top-color: #c8962a; }
+    .nl-achievement-box h4 {
+      font-family: 'Playfair Display', serif;
+      font-size: 15px; color: #0b1a3e; margin-bottom: 10px;
+    }
+    .nl-achievement-box p {
+      font-family: 'Source Serif 4', serif;
+      font-size: 14px; line-height: 1.75; color: #444;
+      white-space: pre-wrap;
+    }
+
+    /* ── Events ────────────────────────────────────── */
+    .nl-events-box {
+      background: linear-gradient(135deg, #f7f6f2, #fff);
+      border: 1px solid #e8e4dc; border-left: 5px solid #0b1a3e;
+      border-radius: 0 10px 10px 0; padding: 22px;
+    }
+    .nl-events-box p {
+      font-family: 'Source Serif 4', serif;
+      font-size: 14px; line-height: 1.85; color: #333; white-space: pre-wrap;
+    }
+
+    /* ── HOD Message ───────────────────────────────── */
+    .nl-hod {
+      background: linear-gradient(135deg, #fdf9f0, #fff8e8);
+      border: 1px solid #e8d8b0; border-radius: 10px; padding: 28px 32px;
+      position: relative;
+    }
+    .nl-hod::before {
+      content: '\201C';
+      font-family: 'Playfair Display', serif;
+      font-size: 80px; color: rgba(200,150,42,.25);
+      position: absolute; top: -10px; left: 16px; line-height: 1;
+    }
+    .nl-hod blockquote {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 16px; font-style: italic;
+      line-height: 1.85; color: #2a2a3e; margin: 0;
+      position: relative; z-index: 1;
+      white-space: pre-wrap;
+    }
+
+    /* ── Footer ────────────────────────────────────── */
+    .nl-footer {
+      background: #0b1a3e; color: #fff;
+      padding: 28px 52px; margin-top: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px;
+    }
+    .nl-footer-org {
+      font-family: 'Playfair Display', serif;
+      font-size: 16px; font-weight: 700;
+    }
+    .nl-footer-contact {
+      font-size: 13px; color: rgba(255,255,255,.65);
+      display: flex; gap: 20px; flex-wrap: wrap;
+    }
+    .nl-footer-contact a { color: #c8962a; }
+
+    /* ── Action Bar ─────────────────────────────────  */
+    .action-bar {
+      background: #fff; border-bottom: 1px solid #e8e4dc;
+      position: sticky; top: 64px; z-index: 50;
+      padding: 10px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap;
+    }
+    .action-bar-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 15px; color: #0b1a3e; font-weight: 700;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      max-width: 400px;
+    }
+    .action-bar-btns { display: flex; gap: 8px; }
+
+    /* ── Lightbox ───────────────────────────────────── */
+    .lightbox {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,.88);
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox img { max-width: 90vw; max-height: 88vh; border-radius: 8px; box-shadow: 0 8px 48px rgba(0,0,0,.6); }
+    .lightbox-close {
+      position: absolute; top: 16px; right: 20px;
+      color: #fff; font-size: 36px; cursor: pointer; line-height: 1;
+      background: none; border: none;
+    }
+
+    /* ── Email Gate ─────────────────────────────────── */
+    .email-gate {
+      position: fixed; inset: 0; background: rgba(10,21,48,.88);
+      z-index: 999; display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .email-gate-card {
+      background: #fff; border-radius: 16px; padding: 44px 40px;
+      max-width: 420px; width: 100%; text-align: center;
+      box-shadow: 0 24px 64px rgba(0,0,0,.3);
+    }
+
+    /* ── Print Styles ───────────────────────────────── */
+    @media print {
+      @page { margin: 15mm; size: A4; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .navbar, .action-bar, footer, .email-gate, .lightbox { display: none !important; }
+      body { background: #fff !important; }
+      #nl-page { box-shadow: none !important; max-width: 100% !important; }
+      .nl-body { padding: 0 20px 20px !important; }
+      .nl-cover-inner { padding: 32px 20px 28px !important; }
+      .nl-footer { padding: 16px 20px !important; }
+      .nl-article { page-break-inside: avoid; }
+      .nl-article-img-grid img { cursor: default; }
+      .nl-articles-2col { grid-template-columns: 1fr !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Email Gate -->
+<div id="email-gate" class="email-gate">
+  <div class="email-gate-card fade-in">
+    <div style="font-size:44px;margin-bottom:16px">📰</div>
+    <h3 style="font-family:'Playfair Display',serif;font-size:24px;margin-bottom:8px;color:#0b1a3e">Read This Newsletter</h3>
+    <p style="color:#888;font-size:14px;margin-bottom:24px;line-height:1.6">Enter your email to continue reading. You can also subscribe to receive future newsletters.</p>
+    <div class="form-group">
+      <input type="email" id="gate-email" class="form-control" placeholder="your@email.com" style="text-align:center;font-size:15px;padding:12px">
+    </div>
+    <button class="btn btn-primary w-full" style="padding:13px;font-size:15px" onclick="unlockNewsletter()">Continue Reading →</button>
+    <p style="margin-top:14px;font-size:13px;color:#999">
+      <label style="cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+        <input type="checkbox" id="gate-subscribe" checked> Subscribe for future newsletter updates
+      </label>
+    </p>
+  </div>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="index.html" class="navbar-brand"><div class="brand-icon">📰</div><span>NMS</span></a>
+    <ul class="navbar-nav">
+      <li><a href="index.html">🏠 Home</a></li>
+      <li><a href="search.html">🔍 Search</a></li>
+    </ul>
+    <div class="navbar-actions" id="nav-user"></div>
+  </div>
+</nav>
+
+<!-- Action Bar (shown after load) -->
+<div class="action-bar" id="action-bar" style="display:none">
+  <span class="action-bar-title" id="action-bar-title">Newsletter</span>
+  <div class="action-bar-btns">
+    <button class="btn btn-primary btn-sm" onclick="downloadPDF()">⬇ Download PDF</button>
+    <button class="btn btn-outline btn-sm" onclick="printNewsletter()">🖨 Print</button>
+    <a href="index.html" class="btn btn-ghost btn-sm">← Archive</a>
+  </div>
+</div>
+
+<!-- Newsletter Page -->
+<div id="reader-root" style="padding:32px 24px 60px;display:none">
+  <div id="nl-page"></div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">×</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<footer style="display:none" id="main-footer">
+  <p>© 2025 Newsletter Management System</p>
+</footer>
+
+<script src="js/api.js"></script>
+<script>
+const params  = new URLSearchParams(location.search);
+const NL_ID   = params.get('id');
+const IMG_BASE = 'http://localhost/newsletter_php/backend';
+let newsletter = null;
+
+/* ── Gate ──────────────────────────────────────────── */
+if (localStorage.getItem('nms_reader_email') || Auth.isLoggedIn()) {
+  document.getElementById('email-gate').style.display = 'none';
+  loadNewsletter();
+}
+
+async function unlockNewsletter() {
+  const email = document.getElementById('gate-email').value.trim();
+  if (!email || !email.includes('@')) { toast('Enter a valid email', 'warn'); return; }
+  localStorage.setItem('nms_reader_email', email);
+  if (document.getElementById('gate-subscribe').checked) {
+    try { await apiFetch('/public/subscribe', { method:'POST', body: JSON.stringify({email, newsletter_id: NL_ID}) }); } catch {}
+  }
+  document.getElementById('email-gate').style.display = 'none';
+  loadNewsletter();
+}
+
+/* ── Load ──────────────────────────────────────────── */
+async function loadNewsletter() {
+  if (!NL_ID) { window.location.href = 'index.html'; return; }
+  try {
+    newsletter = await apiFetch(`/public/newsletters/${NL_ID}`);
+    renderNewsletter(newsletter);
+    document.getElementById('reader-root').style.display = 'block';
+    document.getElementById('action-bar').style.display  = 'flex';
+    document.getElementById('main-footer').style.display = 'block';
+    document.getElementById('action-bar-title').textContent = newsletter.newsletter_title;
+    document.title = newsletter.newsletter_title + ' – NMS';
+  } catch(e) {
+    document.getElementById('reader-root').innerHTML =
+      `<div class="empty-state" style="padding:80px 24px"><div class="empty-icon">⚠️</div><h3>Newsletter not found</h3><p><a href="index.html">Return to archive</a></p></div>`;
+    document.getElementById('reader-root').style.display = 'block';
+  }
+}
+
+/* ── Image Helper ──────────────────────────────────── */
+function getImages(a) {
+  if (a.images && a.images.length) return a.images;
+  if (a.image) {
+    try { const p = JSON.parse(a.image); if (Array.isArray(p)) return p; } catch {}
+    return [a.image];
+  }
+  return [];
+}
+
+function buildArticleImages(a) {
+  const imgs = getImages(a);
+  if (!imgs.length) return '';
+  if (imgs.length === 1) {
+    return `<img class="nl-article-img-single" src="${IMG_BASE}${imgs[0]}" alt="${a.title}" loading="lazy" onclick="openLightbox('${IMG_BASE}${imgs[0]}')">`;
+  }
+  const thumbs = imgs.map(url =>
+    `<img src="${IMG_BASE}${url}" alt="${a.title}" loading="lazy" onclick="openLightbox('${IMG_BASE}${url}')">`
+  ).join('');
+  return `<div class="nl-article-img-grid">${thumbs}</div>`;
+}
+
+/* ── Render ────────────────────────────────────────── */
+function renderNewsletter(n) {
+  const articles = n.articles || [];
+  let html = '';
+
+  /* ── COVER ───────────────────────────────────────── */
+  html += `
+  <div class="nl-cover">
+    <div class="nl-cover-pattern"></div>
+    <div class="nl-cover-inner">
+      <div class="nl-cover-top">
+        <div class="nl-cover-org">${n.organization_name || ''}</div>
+        <div class="nl-cover-meta">
+          ${n.edition    ? `<div><strong>Edition:</strong> ${n.edition}</div>`    : ''}
+          ${n.publish_date?`<div><strong>Date:</strong> ${n.publish_date}</div>` : ''}
+          ${n.editor_name?`<div><strong>Editor:</strong> ${n.editor_name}</div>` : ''}
+        </div>
+      </div>
+      ${n.department ? `<div class="nl-cover-dept">${n.department}</div>` : ''}
+      <h1 class="nl-cover-title">${n.newsletter_title}</h1>
+      ${n.headline ? `<p class="nl-cover-headline">${n.headline}</p>` : ''}
+    </div>
+    <div class="nl-cover-stripe"></div>
+  </div>`;
+
+  /* ── BODY ────────────────────────────────────────── */
+  html += `<div class="nl-body">`;
+
+  /* Introduction */
+  if (n.intro_content) {
+    html += `
+    <div class="nl-section" id="intro">
+      <div class="nl-section-title">Introduction</div>
+      <div class="nl-intro">${n.intro_content}</div>
+    </div>`;
+  }
+
+  /* Articles */
+  if (articles.length) {
+    html += `<div class="nl-section" id="articles"><div class="nl-section-title">Articles</div>`;
+
+    if (articles.length >= 3) {
+      // First article full width, rest 2-column
+      const first = articles[0];
+      const rest  = articles.slice(1);
+
+      html += buildArticleHtml(first, 0, true);
+
+      if (rest.length > 0) {
+        // Pair up remaining into 2-col rows
+        for (let i = 0; i < rest.length; i += 2) {
+          if (i + 1 < rest.length) {
+            html += `<div class="nl-articles-2col">
+              ${buildArticleHtml(rest[i],   i+1, false)}
+              ${buildArticleHtml(rest[i+1], i+2, false)}
+            </div>`;
+          } else {
+            html += buildArticleHtml(rest[i], i+1, true);
+          }
+        }
+      }
+    } else {
+      articles.forEach((a, i) => { html += buildArticleHtml(a, i, true); });
+    }
+
+    html += `</div>`;
+  }
+
+  /* Faculty & Student Achievements */
+  if (n.faculty_achievements || n.student_achievements) {
+    html += `
+    <div class="nl-section" id="achievements">
+      <div class="nl-section-title">Achievements</div>
+      <div class="nl-achievements">
+        ${n.faculty_achievements ? `
+        <div class="nl-achievement-box">
+          <h4>🎓 Faculty Achievements</h4>
+          <p>${n.faculty_achievements}</p>
+        </div>` : ''}
+        ${n.student_achievements ? `
+        <div class="nl-achievement-box gold">
+          <h4>🏆 Student Achievements</h4>
+          <p>${n.student_achievements}</p>
+        </div>` : ''}
+      </div>
+    </div>`;
+  }
+
+  /* Upcoming Events */
+  if (n.upcoming_events) {
+    html += `
+    <div class="nl-section" id="events">
+      <div class="nl-section-title">Upcoming Events</div>
+      <div class="nl-events-box"><p>${n.upcoming_events}</p></div>
+    </div>`;
+  }
+
+  /* HOD Message */
+  if (n.hod_message) {
+    html += `
+    <div class="nl-section" id="hod">
+      <div class="nl-section-title">Message from HOD</div>
+      <div class="nl-hod"><blockquote>${n.hod_message}</blockquote></div>
+    </div>`;
+  }
+
+  html += `</div>`; /* end nl-body */
+
+  /* Footer */
+  html += `
+  <div class="nl-footer">
+    <div class="nl-footer-org">${n.organization_name || ''}</div>
+    <div class="nl-footer-contact">
+      ${n.department    ? `<span>🏫 ${n.department}</span>` : ''}
+      ${n.contact_email ? `<span>📧 <a href="mailto:${n.contact_email}">${n.contact_email}</a></span>` : ''}
+      ${n.website       ? `<span>🌐 <a href="${n.website}" target="_blank">${n.website}</a></span>` : ''}
+    </div>
+  </div>`;
+
+  document.getElementById('nl-page').innerHTML = html;
+}
+
+function buildArticleHtml(a, index, fullWidth) {
+  const imgs = buildArticleImages(a);
+  return `
+  <div class="nl-article">
+    <div class="nl-article-header">
+      <div class="nl-article-num">${index + 1}</div>
+      <h2 class="nl-article-title">${a.title}</h2>
+    </div>
+    <div class="nl-article-byline">✍ ${a.author}</div>
+    ${imgs}
+    <div class="nl-article-body">${a.content}</div>
+  </div>`;
+}
+
+/* ── Lightbox ──────────────────────────────────────── */
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lightbox-img').src = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+/* ── Print & Download ──────────────────────────────── */
+function printNewsletter() {
+  window.print();
+}
+
+function downloadPDF() {
+  const url = `http://localhost/newsletter_php/backend/api/newsletters.php?action=pdf&id=${NL_ID}`;
+  window.open(url, '_blank');
+}
+</script>
+</body>
+</html>

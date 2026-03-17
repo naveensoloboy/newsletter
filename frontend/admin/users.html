@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Users – NMS Admin</title>
+  <link rel="stylesheet" href="../public/css/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="../public/index.html" class="navbar-brand"><div class="brand-icon">📰</div><span>NMS Admin</span></a>
+    <div class="navbar-actions" id="nav-user"></div>
+    <button class="navbar-toggle" id="sidebar-toggle"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<div class="dashboard-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Admin Panel</div>
+      <ul class="sidebar-nav">
+        <li><a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a></li>
+        <li><a href="review.html"><span class="icon">🔍</span> Review Articles</a></li>
+        <li><a href="publish.html"><span class="icon">📰</span> Newsletters</a></li>
+        <li><a href="users.html" class="active"><span class="icon">👥</span> Manage Users</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section" style="margin-top:auto;padding-top:16px;border-top:1px solid var(--border)">
+      <ul class="sidebar-nav">
+        <li><a href="../public/index.html"><span class="icon">🌐</span> Public Site</a></li>
+        <li><a href="#" onclick="logout()"><span class="icon">🚪</span> Logout</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+      <div>
+        <h1 style="font-family:var(--font-display);font-size:28px">Manage Users</h1>
+        <p class="text-muted" style="margin-top:4px">Add, edit, and manage faculty and admin accounts.</p>
+      </div>
+      <button class="btn btn-primary" onclick="openAddUser()">+ Add User</button>
+    </div>
+
+    <div class="filter-strip" style="margin-bottom:20px">
+      <button class="filter-btn active" onclick="setFilter('')">All</button>
+      <button class="filter-btn" onclick="setFilter('faculty')">Faculty</button>
+      <button class="filter-btn" onclick="setFilter('admin')">Admin</button>
+    </div>
+
+    <div class="card">
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Department</th>
+              <th>Role</th>
+              <th>Joined</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr><td colspan="6" style="text-align:center;padding:40px"><div class="spinner" style="margin:0 auto"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add/Edit User Modal -->
+<div id="user-modal" class="hidden">
+  <div class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h4 style="font-family:var(--font-display)" id="modal-title">Add User</h4>
+        <button class="btn btn-ghost btn-icon" onclick="closeUserModal()" style="font-size:18px">×</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="u-id">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Full Name <span class="required">*</span></label>
+            <input type="text" id="u-name" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email <span class="required">*</span></label>
+            <input type="email" id="u-email" class="form-control">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Department</label>
+            <input type="text" id="u-dept" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Role</label>
+            <select id="u-role" class="form-control">
+              <option value="faculty">Faculty</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" id="password-field">
+          <label class="form-label">Password <span class="required" id="pwd-req">*</span></label>
+          <input type="password" id="u-password" class="form-control" placeholder="Leave blank to keep unchanged">
+          <p class="form-hint" id="pwd-hint">Min. 6 characters</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeUserModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveUser()" id="save-user-btn">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../public/js/api.js"></script>
+<script>
+Auth.requireAdmin();
+let allUsers = [];
+let currentFilter = '';
+let editingId = null;
+
+async function loadUsers() {
+  try {
+    allUsers = await apiFetch('/admin/users');
+    renderTable(allUsers);
+  } catch(e) {
+    document.getElementById('users-tbody').innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red)">${e.message}</td></tr>`;
+  }
+}
+
+function setFilter(role) {
+  currentFilter = role;
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    const labels = {'':'All', faculty:'Faculty', admin:'Admin'};
+    b.classList.toggle('active', b.textContent === labels[role]);
+  });
+  renderTable(role ? allUsers.filter(u => u.role === role) : allUsers);
+}
+
+function renderTable(users) {
+  const tbody = document.getElementById('users-tbody');
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state" style="padding:40px 0"><div class="empty-icon">👥</div><h3>No users found</h3></div></td></tr>';
+    return;
+  }
+  const me = Auth.getUser();
+  tbody.innerHTML = users.map(u => `
+    <tr class="fade-in">
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">${u.name.charAt(0).toUpperCase()}</div>
+          <div>
+            <div style="font-weight:600;font-size:14px">${u.name}</div>
+            ${u.id === me?.id ? '<span style="font-size:11px;color:var(--blue)">(you)</span>' : ''}
+          </div>
+        </div>
+      </td>
+      <td style="font-size:13px">${u.email}</td>
+      <td style="font-size:13px;color:var(--text-muted)">${u.department||'–'}</td>
+      <td><span class="badge ${u.role==='admin'?'badge-published':'badge-approved'}">${u.role}</span></td>
+      <td style="font-size:13px;color:var(--text-muted)">${formatDate(u.created_at)}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-outline btn-sm" onclick="openEditUser('${u.id}')">Edit</button>
+          ${u.id !== me?.id ? `<button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}','${u.name.replace(/'/g,"\\'")}')">Delete</button>` : ''}
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function openAddUser() {
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'Add New User';
+  document.getElementById('u-id').value       = '';
+  document.getElementById('u-name').value     = '';
+  document.getElementById('u-email').value    = '';
+  document.getElementById('u-dept').value     = '';
+  document.getElementById('u-role').value     = 'faculty';
+  document.getElementById('u-password').value = '';
+  document.getElementById('pwd-req').style.display = 'inline';
+  document.getElementById('pwd-hint').textContent = 'Min. 6 characters';
+  document.getElementById('user-modal').classList.remove('hidden');
+}
+
+function openEditUser(id) {
+  const u = allUsers.find(x => x.id === id);
+  if (!u) return;
+  editingId = id;
+  document.getElementById('modal-title').textContent = 'Edit User';
+  document.getElementById('u-id').value       = id;
+  document.getElementById('u-name').value     = u.name;
+  document.getElementById('u-email').value    = u.email;
+  document.getElementById('u-dept').value     = u.department||'';
+  document.getElementById('u-role').value     = u.role;
+  document.getElementById('u-password').value = '';
+  document.getElementById('pwd-req').style.display = 'none';
+  document.getElementById('pwd-hint').textContent = 'Leave blank to keep current password';
+  document.getElementById('user-modal').classList.remove('hidden');
+}
+
+function closeUserModal() { document.getElementById('user-modal').classList.add('hidden'); }
+
+async function saveUser() {
+  const name     = document.getElementById('u-name').value.trim();
+  const email    = document.getElementById('u-email').value.trim();
+  const dept     = document.getElementById('u-dept').value.trim();
+  const role     = document.getElementById('u-role').value;
+  const password = document.getElementById('u-password').value;
+
+  if (!name || !email) { toast('Name and email are required', 'warn'); return; }
+  if (!editingId && !password) { toast('Password is required for new users', 'warn'); return; }
+  if (password && password.length < 6) { toast('Password must be at least 6 characters', 'warn'); return; }
+
+  const data = { name, email, department: dept, role };
+  if (password) data.password = password;
+
+  const btn = document.getElementById('save-user-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    if (editingId) {
+      await apiFetch(`/admin/users/${editingId}`, { method:'PUT', body: JSON.stringify(data) });
+      toast('User updated!', 'success');
+    } else {
+      await apiFetch('/admin/users', { method:'POST', body: JSON.stringify(data) });
+      toast('User created!', 'success');
+    }
+    closeUserModal();
+    loadUsers();
+  } catch(e) {
+    toast(e.message, 'error');
+  }
+  btn.disabled = false; btn.textContent = 'Save';
+}
+
+async function deleteUser(id, name) {
+  showModal({
+    title: 'Delete User',
+    body: `<p>Are you sure you want to delete <strong>${name}</strong>? This action cannot be undone.</p>`,
+    confirmText: 'Delete', confirmClass: 'btn-danger',
+    onConfirm: async (modal) => {
+      try {
+        await apiFetch(`/admin/users/${id}`, { method:'DELETE' });
+        toast('User deleted', 'success');
+        modal.remove();
+        loadUsers();
+      } catch(e) { toast(e.message, 'error'); }
+    }
+  });
+}
+
+loadUsers();
+</script>
+</body>
+</html>

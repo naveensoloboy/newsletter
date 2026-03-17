@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Archive | GASC Digital Library</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #064e3b;
+      --primary-light: #065f46;
+      --accent: #d97706;
+      --bg: #f8fafc;
+      --white: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border: rgba(226, 232, 240, 0.8);
+      --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+    }
+
+    * { box-sizing: border-box; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+
+    body {
+      margin: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+    /* --- NAVBAR --- */
+    .navbar {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .navbar-inner { display: flex; align-items: center; justify-content: space-between; }
+    .navbar-brand { 
+      display: flex; 
+      align-items: center; 
+      text-decoration: none; 
+      font-weight: 800; 
+      color: var(--primary); 
+      font-size: 20px; 
+    }
+    .brand-icon { margin-right: 10px; }
+
+    .navbar-nav { list-style: none; display: flex; gap: 32px; margin: 0; padding: 0; }
+    .navbar-nav a { text-decoration: none; color: var(--text-muted); font-weight: 600; font-size: 14px; }
+    .navbar-nav a.active { color: var(--primary); }
+
+    /* --- PAGE HEADER --- */
+    .page-header {
+      background: var(--primary);
+      background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
+      color: white;
+      padding: 80px 0 120px;
+      text-align: center;
+      clip-path: ellipse(150% 100% at 50% 0%);
+    }
+
+    .page-header h1 { 
+      font-family: 'Playfair Display', serif; 
+      font-size: clamp(2rem, 5vw, 3.5rem); 
+      margin: 0 0 16px; 
+    }
+    .page-header p { opacity: 0.8; font-size: 18px; font-weight: 300; }
+
+    /* --- SEARCH COMPONENT --- */
+    .search-wrapper {
+      max-width: 800px;
+      margin: -45px auto 40px;
+      padding: 0 24px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .search-bar {
+      display: flex;
+      background: var(--white);
+      padding: 10px;
+      border-radius: 24px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--border);
+    }
+
+    .search-bar input {
+      flex: 1;
+      border: none;
+      padding: 0 25px;
+      font-size: 16px;
+      font-family: inherit;
+      outline: none;
+      background: transparent;
+    }
+
+    .search-bar button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 14px 35px;
+      border-radius: 18px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .search-bar button:hover { background: var(--primary-light); transform: scale(1.02); }
+
+    /* --- FILTERS --- */
+    .filter-strip {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+
+    .filter-btn {
+      padding: 10px 22px;
+      border-radius: 50px;
+      border: 1px solid var(--border);
+      background: var(--white);
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .filter-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .filter-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+
+    /* --- GRID & CARDS --- */
+    .newsletter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 30px;
+      padding-bottom: 80px;
+    }
+
+    .newsletter-card {
+      background: var(--white);
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .newsletter-card:hover { transform: translateY(-10px); box-shadow: var(--shadow); border-color: var(--primary-light); }
+
+    .card-cover {
+      padding: 30px;
+      background: var(--primary);
+      background: linear-gradient(45deg, var(--primary), var(--primary-light));
+      color: white;
+      position: relative;
+      height: 160px;
+      display: flex;
+      align-items: flex-end;
+    }
+
+    .edition-badge {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255,255,255,0.2);
+      padding: 4px 12px;
+      border-radius: 50px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .card-cover h3 { font-family: 'Playfair Display', serif; font-size: 22px; margin: 0; }
+
+    .card-body { padding: 24px; flex-grow: 1; display: flex; flex-direction: column; }
+    .dept-tag { color: var(--accent); font-weight: 800; font-size: 11px; text-transform: uppercase; margin-bottom: 12px; display: block; }
+    .headline { color: var(--text-muted); font-size: 14px; margin-bottom: 20px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    
+    .card-meta {
+      margin-top: auto;
+      padding-top: 15px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* --- STATES --- */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 100px 0;
+      color: var(--text-muted);
+    }
+    .empty-icon { font-size: 64px; margin-bottom: 20px; opacity: 0.5; }
+
+    .spinner {
+      width: 40px; height: 40px;
+      border: 4px solid rgba(6, 78, 59, 0.1);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s infinite linear;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    footer { padding: 40px 0; text-align: center; background: var(--white); border-top: 1px solid var(--border); color: var(--text-muted); font-size: 14px; }
+
+    @media (max-width: 640px) {
+      .search-bar { flex-direction: column; border-radius: 16px; gap: 10px; }
+      .search-bar input { padding: 15px; }
+      .navbar-nav { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner container">
+    <a href="index.html" class="navbar-brand">
+      <div class="brand-icon">🏛️</div>
+      <span>GASC ARCHIVE</span>
+    </a>
+    <ul class="navbar-nav">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="search.html" class="active">Search</a></li>
+      <li><a href="login.html">Login</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="container">
+    <h1>Search Newsletters</h1>
+    <p>Find departmental publications and academic records</p>
+  </div>
+</div>
+
+<main class="container">
+  <div class="search-wrapper">
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="Keyword, department, or edition...">
+      <button onclick="doSearch()">Search</button>
+    </div>
+  </div>
+
+  <div class="filter-strip" id="dept-filters">
+    <button class="filter-btn active" onclick="filterDept('')" data-dept="">All Departments</button>
+  </div>
+
+  <div id="result-count" style="font-weight: 700; color: var(--text-muted); margin-bottom: 24px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;"></div>
+
+  <div id="results-grid" class="newsletter-grid">
+    </div>
+</main>
+
+<footer>
+  <p>© 2026 Gobi Arts & Science College. Built for Excellence.</p>
+</footer>
+
+<script src="js/api.js"></script>
+<script>
+let currentDept = '';
+
+async function loadDepartments() {
+  try {
+    const depts = await apiFetch('/public/departments');
+    const strip = document.getElementById('dept-filters');
+    depts.forEach(d => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn';
+      btn.dataset.dept = d;
+      btn.textContent = d;
+      btn.onclick = () => filterDept(d);
+      strip.appendChild(btn);
+    });
+  } catch {}
+}
+
+function filterDept(dept) {
+  currentDept = dept;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.dept === dept));
+  doSearch();
+}
+
+async function doSearch() {
+  const search = document.getElementById('search-input').value.trim();
+  const grid = document.getElementById('results-grid');
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px"><div class="spinner" style="margin:0 auto"></div></div>';
+  
+  try {
+    // We use the base endpoint defined in ROUTES
+    let endpoint = '/public/newsletters'; 
+    
+    // Add query parameters to the URL manually for the browser fetch
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (currentDept) params.set('department', currentDept);
+    
+    // IMPORTANT: We send the endpoint and let apiFetch handle the building
+    // However, since buildURL uses regex.match, we need to strip params for the matcher
+    // or update the regex in app.js
+    const queryString = params.toString() ? '?' + params.toString() : '';
+    
+    // Because your app.js buildURL is strict, we call it like this:
+    const newsletters = await apiFetch(endpoint + queryString);
+    
+    document.getElementById('result-count').textContent = `${newsletters.length} result${newsletters.length!==1?'s':''} found`;
+    
+    if (!newsletters.length) {
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🔍</div><h3>No results</h3><p>Try different keywords or clear the filter.</p></div>';
+      return;
+    }
+    
+    grid.innerHTML = newsletters.map(n => `
+      <div class="newsletter-card fade-in" onclick="window.location.href='newsletter.html?id=${n.id}'">
+        <div class="card-cover">
+          <span class="edition-badge">${n.edition||'Vol.1'}</span>
+          <h3>${n.newsletter_title}</h3>
+        </div>
+        <div class="card-body">
+          <span class="dept-tag">${n.department||'General'}</span>
+          <p class="headline">${n.headline||n.intro_content||''}</p>
+          <div class="card-meta">
+            <span>📅 ${formatDate(n.publish_date || n.created_at)}</span>
+            <span>✍️ ${n.editor_name||'Editor'}</span>
+          </div>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><p>Error: ${e.message}</p></div>`;
+  }
+}
+
+document.getElementById('search-input').addEventListener('keydown', e => { if (e.key==='Enter') doSearch(); });
+
+// Pre-fill search from URL param
+const q = new URLSearchParams(location.search).get('q');
+if (q) { document.getElementById('search-input').value = q; }
+
+loadDepartments();
+doSearch();
+</script>
+</body>
+</html>

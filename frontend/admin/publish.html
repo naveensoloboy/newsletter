@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Newsletters – NMS Admin</title>
+  <link rel="stylesheet" href="../public/css/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="../public/index.html" class="navbar-brand"><div class="brand-icon">📰</div><span>NMS Admin</span></a>
+    <div class="navbar-actions" id="nav-user"></div>
+    <button class="navbar-toggle" id="sidebar-toggle"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<div class="dashboard-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Admin Panel</div>
+      <ul class="sidebar-nav">
+        <li><a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a></li>
+        <li><a href="review.html"><span class="icon">🔍</span> Review Articles</a></li>
+        <li><a href="publish.html" class="active"><span class="icon">📰</span> Newsletters</a></li>
+        <li><a href="users.html"><span class="icon">👥</span> Manage Users</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section" style="margin-top:auto;padding-top:16px;border-top:1px solid var(--border)">
+      <ul class="sidebar-nav">
+        <li><a href="../public/index.html"><span class="icon">🌐</span> Public Site</a></li>
+        <li><a href="#" onclick="logout()"><span class="icon">🚪</span> Logout</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+      <div>
+        <h1 style="font-family:var(--font-display);font-size:28px">Manage Newsletters</h1>
+        <p class="text-muted" style="margin-top:4px">Review, edit and publish newsletter editions.</p>
+      </div>
+    </div>
+
+    <div class="filter-strip" style="margin-bottom:20px">
+      <button class="filter-btn active" onclick="setFilter('')">All</button>
+      <button class="filter-btn" onclick="setFilter('draft')">Draft</button>
+      <button class="filter-btn" onclick="setFilter('submitted')">Submitted</button>
+      <button class="filter-btn" onclick="setFilter('published')">Published</button>
+    </div>
+
+    <div class="card">
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Newsletter</th>
+              <th>Department</th>
+              <th>Edition</th>
+              <th>Status</th>
+              <th>Articles</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="nl-tbody">
+            <tr><td colspan="7" style="text-align:center;padding:40px"><div class="spinner" style="margin:0 auto"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Edit Newsletter Modal -->
+<div id="edit-nl-modal" class="hidden">
+  <div class="modal-backdrop">
+    <div class="modal" style="max-width:760px">
+      <div class="modal-header">
+        <h4 style="font-family:var(--font-display)">Edit Newsletter</h4>
+        <button class="btn btn-ghost btn-icon" onclick="closeNlEdit()" style="font-size:18px">×</button>
+      </div>
+      <div class="modal-body" style="max-height:70vh;overflow-y:auto">
+        <input type="hidden" id="enl-id">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Title</label><input id="enl-title" class="form-control"></div>
+          <div class="form-group"><label class="form-label">Edition</label><input id="enl-edition" class="form-control"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Organization</label><input id="enl-org" class="form-control"></div>
+          <div class="form-group"><label class="form-label">Department</label><input id="enl-dept" class="form-control"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Editor Name</label><input id="enl-editor" class="form-control"></div>
+          <div class="form-group"><label class="form-label">Publish Date</label><input type="date" id="enl-date" class="form-control"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Headline</label><input id="enl-headline" class="form-control"></div>
+        <div class="form-group"><label class="form-label">Introduction</label><textarea id="enl-intro" class="form-control" rows="3"></textarea></div>
+        <div class="form-group"><label class="form-label">Faculty Achievements</label><textarea id="enl-faculty-ach" class="form-control" rows="3"></textarea></div>
+        <div class="form-group"><label class="form-label">Student Achievements</label><textarea id="enl-student-ach" class="form-control" rows="3"></textarea></div>
+        <div class="form-group"><label class="form-label">Upcoming Events</label><textarea id="enl-events" class="form-control" rows="3"></textarea></div>
+        <div class="form-group"><label class="form-label">HOD Message</label><textarea id="enl-hod" class="form-control" rows="3"></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Contact Email</label><input type="email" id="enl-contact" class="form-control"></div>
+          <div class="form-group"><label class="form-label">Website</label><input id="enl-website" class="form-control"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeNlEdit()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveNlEdit()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../public/js/api.js"></script>
+<script>
+Auth.requireAdmin();
+let allNewsletters = [];
+let currentFilter = '';
+
+async function loadNewsletters() {
+  try {
+    allNewsletters = await apiFetch('/newsletters/');
+    renderTable(allNewsletters);
+  } catch(e) {
+    document.getElementById('nl-tbody').innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--red)">${e.message}</td></tr>`;
+  }
+}
+
+function setFilter(status) {
+  currentFilter = status;
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    const labels = {'':'All', draft:'Draft', submitted:'Submitted', published:'Published'};
+    b.classList.toggle('active', b.textContent === labels[status]);
+  });
+  renderTable(status ? allNewsletters.filter(n => n.status === status) : allNewsletters);
+}
+
+async function renderTable(newsletters) {
+  const tbody = document.getElementById('nl-tbody');
+  if (!newsletters.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state" style="padding:40px 0"><div class="empty-icon">📭</div><h3>No newsletters</h3></div></td></tr>';
+    return;
+  }
+
+  // Get article counts
+  const rows = await Promise.all(newsletters.map(async n => {
+    let articleCount = 0;
+    try {
+      const arts = await apiFetch(`/articles/newsletter/${n.id}`);
+      articleCount = arts.length;
+    } catch {}
+    return {n, articleCount};
+  }));
+
+  tbody.innerHTML = rows.map(({n, articleCount}) => `
+    <tr class="fade-in">
+      <td>
+        <div style="font-weight:600;font-size:14px">${n.newsletter_title}</div>
+        <div style="font-size:12px;color:var(--text-muted)">${n.organization_name||''}</div>
+      </td>
+      <td style="font-size:13px">${n.department||'–'}</td>
+      <td style="font-size:13px">${n.edition||'–'}</td>
+      <td>${statusBadge(n.status)}</td>
+      <td style="font-size:13px;text-align:center">${articleCount}</td>
+      <td style="font-size:13px;color:var(--text-muted)">${n.publish_date||formatDate(n.created_at)}</td>
+      <td>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-outline btn-sm" onclick="openEdit('${n.id}')">✏️ Edit</button>
+          ${n.status !== 'published' ? `<button class="btn btn-accent btn-sm" onclick="publishNewsletter('${n.id}','${n.newsletter_title.replace(/'/g,"\\'")}')">🌐 Publish</button>` : `<a href="../public/newsletter.html?id=${n.id}" class="btn btn-ghost btn-sm" target="_blank">👁 View</a>`}
+          <button class="btn btn-ghost btn-sm" onclick="downloadPDF('${n.id}')">⬇ PDF</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteNewsletter('${n.id}')">🗑</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+async function publishNewsletter(id, title) {
+  showModal({
+    title: 'Publish Newsletter',
+    body: `<p>Are you sure you want to publish <strong>"${title}"</strong>?</p><p style="margin-top:8px;font-size:13px;color:var(--text-muted)">All subscribers will be notified via email.</p>`,
+    confirmText: '🌐 Publish Now',
+    confirmClass: 'btn-accent',
+    onConfirm: async (modal) => {
+      try {
+        const res = await apiFetch(`/admin/newsletters/${id}/publish`, { method:'POST' });
+        toast(res.message, 'success');
+        modal.remove();
+        loadNewsletters();
+      } catch(e) { toast(e.message, 'error'); }
+    }
+  });
+}
+
+function openEdit(id) {
+  const n = allNewsletters.find(x => x.id === id);
+  if (!n) return;
+  document.getElementById('enl-id').value          = id;
+  document.getElementById('enl-title').value       = n.newsletter_title||'';
+  document.getElementById('enl-edition').value     = n.edition||'';
+  document.getElementById('enl-org').value         = n.organization_name||'';
+  document.getElementById('enl-dept').value        = n.department||'';
+  document.getElementById('enl-editor').value      = n.editor_name||'';
+  document.getElementById('enl-date').value        = n.publish_date||'';
+  document.getElementById('enl-headline').value    = n.headline||'';
+  document.getElementById('enl-intro').value       = n.intro_content||'';
+  document.getElementById('enl-faculty-ach').value = n.faculty_achievements||'';
+  document.getElementById('enl-student-ach').value = n.student_achievements||'';
+  document.getElementById('enl-events').value      = n.upcoming_events||'';
+  document.getElementById('enl-hod').value         = n.hod_message||'';
+  document.getElementById('enl-contact').value     = n.contact_email||'';
+  document.getElementById('enl-website').value     = n.website||'';
+  document.getElementById('edit-nl-modal').classList.remove('hidden');
+}
+function closeNlEdit() { document.getElementById('edit-nl-modal').classList.add('hidden'); }
+
+async function saveNlEdit() {
+  const id = document.getElementById('enl-id').value;
+  const data = {
+    newsletter_title: document.getElementById('enl-title').value,
+    edition: document.getElementById('enl-edition').value,
+    organization_name: document.getElementById('enl-org').value,
+    department: document.getElementById('enl-dept').value,
+    editor_name: document.getElementById('enl-editor').value,
+    publish_date: document.getElementById('enl-date').value,
+    headline: document.getElementById('enl-headline').value,
+    intro_content: document.getElementById('enl-intro').value,
+    faculty_achievements: document.getElementById('enl-faculty-ach').value,
+    student_achievements: document.getElementById('enl-student-ach').value,
+    upcoming_events: document.getElementById('enl-events').value,
+    hod_message: document.getElementById('enl-hod').value,
+    contact_email: document.getElementById('enl-contact').value,
+    website: document.getElementById('enl-website').value
+  };
+  try {
+    await apiFetch(`/newsletters/${id}`, { method:'PUT', body: JSON.stringify(data) });
+    toast('Newsletter updated!', 'success');
+    closeNlEdit();
+    loadNewsletters();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function downloadPDF(id) {
+  window.open(`http://localhost/newsletter_php/backend/api/newsletters.php?action=pdf&id=${id}`, '_blank');
+}
+
+async function deleteNewsletter(id) {
+  showModal({
+    title: 'Delete Newsletter',
+    body: '<p>Are you sure? This will permanently delete the newsletter and all its articles.</p>',
+    confirmText: 'Delete', confirmClass: 'btn-danger',
+    onConfirm: async (modal) => {
+      try {
+        await apiFetch(`/newsletters/${id}`, { method:'DELETE' });
+        toast('Newsletter deleted', 'success');
+        modal.remove();
+        loadNewsletters();
+      } catch(e) { toast(e.message, 'error'); }
+    }
+  });
+}
+
+loadNewsletters();
+</script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard – NMS</title>
+  <link rel="stylesheet" href="../public/css/style.css">
+  <style>
+    .pending-article { padding:16px; border-bottom:1px solid var(--border); transition:background var(--transition); }
+    .pending-article:hover { background:#fafafe; }
+    .pending-article:last-child { border-bottom:none; }
+  </style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="../public/index.html" class="navbar-brand"><div class="brand-icon">📰</div><span>NMS Admin</span></a>
+    <div class="navbar-actions" id="nav-user"></div>
+    <button class="navbar-toggle" id="sidebar-toggle"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<div class="dashboard-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Admin Panel</div>
+      <ul class="sidebar-nav">
+        <li><a href="dashboard.html" class="active"><span class="icon">🏠</span> Dashboard</a></li>
+        <li><a href="review.html"><span class="icon">🔍</span> Review Articles</a></li>
+        <li><a href="publish.html"><span class="icon">📰</span> Newsletters</a></li>
+        <li><a href="users.html"><span class="icon">👥</span> Manage Users</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section" style="margin-top:auto;padding-top:16px;border-top:1px solid var(--border)">
+      <ul class="sidebar-nav">
+        <li><a href="../public/index.html"><span class="icon">🌐</span> Public Site</a></li>
+        <li><a href="#" onclick="logout()"><span class="icon">🚪</span> Logout</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div style="margin-bottom:28px">
+      <h1 style="font-family:var(--font-display);font-size:28px">Admin Dashboard</h1>
+      <p class="text-muted" style="margin-top:4px">Overview of newsletter system activity.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid stagger" id="stats-grid">
+      <div class="stat-card"><div class="stat-icon">📰</div><div class="stat-value" id="s-nl">–</div><div class="stat-label">Total Newsletters</div></div>
+      <div class="stat-card"><div class="stat-icon">🌐</div><div class="stat-value" id="s-pub">–</div><div class="stat-label">Published</div></div>
+      <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-value" id="s-pending">–</div><div class="stat-label">Pending Review</div></div>
+      <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value" id="s-faculty">–</div><div class="stat-label">Faculty Members</div></div>
+      <div class="stat-card"><div class="stat-icon">📧</div><div class="stat-value" id="s-subs">–</div><div class="stat-label">Subscribers</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:8px">
+      <!-- Pending articles -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">⏳ Pending Review</h3>
+          <a href="review.html" style="font-size:13px;color:var(--blue)">Review all →</a>
+        </div>
+        <div id="pending-list">
+          <div style="padding:40px;text-align:center"><div class="spinner" style="margin:0 auto"></div></div>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">⚡ Quick Actions</h3></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+          <a href="review.html" class="btn btn-primary">🔍 Review Submitted Articles</a>
+          <a href="publish.html" class="btn btn-outline">📰 Manage Newsletters</a>
+          <a href="users.html" class="btn btn-outline">👥 Manage Users</a>
+          <a href="../public/index.html" class="btn btn-ghost" target="_blank">🌐 View Public Site</a>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../public/js/api.js"></script>
+<script>
+Auth.requireAdmin();
+
+async function loadDashboard() {
+  try {
+    const stats = await apiFetch('/admin/stats');
+    document.getElementById('s-nl').textContent      = stats.total_newsletters;
+    document.getElementById('s-pub').textContent     = stats.published_newsletters;
+    document.getElementById('s-pending').textContent = stats.pending_articles;
+    document.getElementById('s-faculty').textContent = stats.total_faculty;
+    document.getElementById('s-subs').textContent    = stats.total_subscribers;
+  } catch {}
+
+  try {
+    const pending = await apiFetch('/admin/articles/pending');
+    const el = document.getElementById('pending-list');
+    if (!pending.length) {
+      el.innerHTML = '<div class="empty-state" style="padding:32px 0"><div class="empty-icon">✅</div><h3>All caught up!</h3><p>No articles pending review.</p></div>';
+      return;
+    }
+    el.innerHTML = pending.slice(0,5).map(a => `
+      <div class="pending-article">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-weight:600;font-size:14px">${a.title}</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px">By ${a.author} · ${formatDate(a.created_at)}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;margin-left:12px">
+            <button class="btn btn-success btn-sm" onclick="quickApprove('${a.id}')">✓</button>
+            <button class="btn btn-danger btn-sm" onclick="window.location.href='review.html'">→</button>
+          </div>
+        </div>
+      </div>`).join('');
+  } catch {}
+}
+
+async function quickApprove(id) {
+  try {
+    await apiFetch(`/admin/articles/${id}/approve`, { method:'POST' });
+    toast('Article approved! ✅', 'success');
+    loadDashboard();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+loadDashboard();
+</script>
+</body>
+</html>

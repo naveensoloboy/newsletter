@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faculty Dashboard – NMS</title>
+  <link rel="stylesheet" href="../public/css/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="../public/index.html" class="navbar-brand"><div class="brand-icon">📰</div><span>NMS Faculty</span></a>
+    <div class="navbar-actions" id="nav-user"></div>
+    <button class="navbar-toggle" id="sidebar-toggle"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<div class="dashboard-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Faculty Panel</div>
+      <ul class="sidebar-nav">
+        <li><a href="dashboard.html" class="active"><span class="icon">🏠</span> Dashboard</a></li>
+        <li><a href="create-article.html"><span class="icon">✏️</span> Create Article</a></li>
+        <li><a href="my-articles.html"><span class="icon">📄</span> My Articles</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section" style="margin-top:auto;padding-top:16px;border-top:1px solid var(--border)">
+      <ul class="sidebar-nav">
+        <li><a href="../public/index.html"><span class="icon">🌐</span> Public Site</a></li>
+        <li><a href="#" onclick="logout()"><span class="icon">🚪</span> Logout</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div style="margin-bottom:32px">
+      <h1 style="font-family:var(--font-display);font-size:28px" id="welcome-msg">Welcome back 👋</h1>
+      <p class="text-muted" style="margin-top:4px">Manage your newsletter articles and submissions.</p>
+    </div>
+
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card"><div class="stat-icon">📝</div><div class="stat-value" id="s-total">–</div><div class="stat-label">Total Articles</div></div>
+      <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-value" id="s-pending">–</div><div class="stat-label">Pending Review</div></div>
+      <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value" id="s-approved">–</div><div class="stat-label">Approved</div></div>
+      <div class="stat-card"><div class="stat-icon">❌</div><div class="stat-value" id="s-rejected">–</div><div class="stat-label">Rejected</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px" id="quick-sections">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Quick Actions</h3>
+        </div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+          <a href="create-article.html" class="btn btn-primary">✏️ Write New Article</a>
+          <a href="my-articles.html" class="btn btn-outline">📄 View My Articles</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Recent Articles</h3>
+          <a href="my-articles.html" style="font-size:13px;color:var(--blue)">View all →</a>
+        </div>
+        <div id="recent-articles" class="card-body">
+          <div class="spinner" style="margin:20px auto;display:block"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../public/js/api.js"></script>
+<script>
+Auth.requireAuth('../public/login.html');
+const user = Auth.getUser();
+if (user) document.getElementById('welcome-msg').textContent = `Welcome back, ${user.name} 👋`;
+
+async function loadStats() {
+  try {
+    const articles = await apiFetch('/articles/my');
+    document.getElementById('s-total').textContent    = articles.length;
+    document.getElementById('s-pending').textContent  = articles.filter(a=>a.status==='submitted').length;
+    document.getElementById('s-approved').textContent = articles.filter(a=>a.status==='approved').length;
+    document.getElementById('s-rejected').textContent = articles.filter(a=>a.status==='rejected').length;
+
+    const recent = articles.slice(0,5);
+    const el = document.getElementById('recent-articles');
+    if (!recent.length) {
+      el.innerHTML = '<div class="empty-state" style="padding:20px 0"><div class="empty-icon" style="font-size:28px">📝</div><p>No articles yet. Start writing!</p></div>';
+      return;
+    }
+    el.innerHTML = recent.map(a => `
+      <div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:14px;font-weight:600">${a.title}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${formatDate(a.created_at)}</div>
+        </div>
+        ${statusBadge(a.status)}
+      </div>`).join('');
+  } catch(e) {
+    toast('Failed to load stats', 'error');
+  }
+}
+
+loadStats();
+</script>
+</body>
+</html>

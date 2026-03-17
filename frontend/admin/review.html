@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Review Articles – NMS Admin</title>
+  <link rel="stylesheet" href="../public/css/style.css">
+  <style>
+    .article-review-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); margin-bottom:20px; overflow:hidden; }
+    .article-review-card .arc-header { padding:18px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .article-review-card .arc-body { padding:20px; }
+    .article-review-card .arc-content { font-size:14px; line-height:1.8; color:#444; max-height:160px; overflow:hidden; position:relative; }
+    .article-review-card .arc-content::after { content:''; position:absolute; bottom:0; left:0; right:0; height:40px; background:linear-gradient(transparent,var(--bg-card)); }
+    .article-review-card .arc-actions { padding:14px 20px; border-top:1px solid var(--border); background:#fafafa; display:flex; gap:10px; flex-wrap:wrap; }
+    .img-gallery { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+    .img-gallery img { height:180px; width:auto; max-width:100%; object-fit:cover; border-radius:var(--radius); border:2px solid var(--border); cursor:pointer; transition:transform .2s; }
+    .img-gallery img:hover { transform:scale(1.02); }
+    .img-gallery.single img { width:100%; height:auto; max-height:280px; }
+    /* Lightbox */
+    .lightbox { position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px; }
+    .lightbox img { max-width:90vw; max-height:90vh; border-radius:8px; box-shadow:0 8px 40px rgba(0,0,0,.5); }
+    .lightbox-close { position:absolute; top:16px; right:20px; color:#fff; font-size:32px; cursor:pointer; line-height:1; }
+    .img-count-badge { display:inline-flex; align-items:center; gap:4px; background:#eef1fb; color:var(--blue); font-size:11px; font-weight:600; padding:3px 8px; border-radius:12px; margin-left:8px; }
+  </style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="../public/index.html" class="navbar-brand"><div class="brand-icon">📰</div><span>NMS Admin</span></a>
+    <div class="navbar-actions" id="nav-user"></div>
+    <button class="navbar-toggle" id="sidebar-toggle"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<div class="dashboard-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Admin Panel</div>
+      <ul class="sidebar-nav">
+        <li><a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a></li>
+        <li><a href="review.html" class="active"><span class="icon">🔍</span> Review Articles</a></li>
+        <li><a href="publish.html"><span class="icon">📰</span> Newsletters</a></li>
+        <li><a href="users.html"><span class="icon">👥</span> Manage Users</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section" style="margin-top:auto;padding-top:16px;border-top:1px solid var(--border)">
+      <ul class="sidebar-nav">
+        <li><a href="../public/index.html"><span class="icon">🌐</span> Public Site</a></li>
+        <li><a href="#" onclick="logout()"><span class="icon">🚪</span> Logout</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+      <div>
+        <h1 style="font-family:var(--font-display);font-size:28px">Review Articles</h1>
+        <p class="text-muted" style="margin-top:4px">Approve or reject submitted faculty articles.</p>
+      </div>
+      <div class="filter-strip">
+        <button class="filter-btn active" onclick="setFilter('submitted')">Pending</button>
+        <button class="filter-btn" onclick="setFilter('approved')">Approved</button>
+        <button class="filter-btn" onclick="setFilter('rejected')">Rejected</button>
+        <button class="filter-btn" onclick="setFilter('')">All</button>
+      </div>
+    </div>
+
+    <div id="articles-container">
+      <div style="text-align:center;padding:60px"><div class="spinner" style="margin:0 auto"></div></div>
+    </div>
+  </main>
+</div>
+
+<!-- Reject Modal -->
+<div id="reject-modal" class="hidden">
+  <div class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h4 style="font-family:var(--font-display)">❌ Reject Article</h4>
+        <button class="btn btn-ghost btn-icon" onclick="closeReject()" style="font-size:18px">×</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="reject-id">
+        <div class="form-group">
+          <label class="form-label">Reason for Rejection <span class="required">*</span></label>
+          <textarea id="reject-reason" class="form-control" rows="4" placeholder="Explain why this article is being rejected…"></textarea>
+        </div>
+        <p style="font-size:13px;color:var(--text-muted)">The faculty member will be notified via email with this reason.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeReject()">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmReject()">Reject Article</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" class="lightbox hidden" onclick="closeLightbox()">
+  <span class="lightbox-close">×</span>
+  <img id="lightbox-img" src="" alt="Full size image">
+</div>
+
+<script src="../public/js/api.js"></script>
+<script>
+Auth.requireAdmin();
+let currentFilter = 'submitted';
+let allArticles   = [];
+
+/* ── Image Helper ──────────────────────────────────── */
+function getImages(a) {
+  // images field (array) takes priority, then try parsing image as JSON, then single string
+  if (a.images && a.images.length) return a.images;
+  if (a.image) {
+    try {
+      const parsed = JSON.parse(a.image);
+      if (Array.isArray(parsed) && parsed.length) return parsed;
+    } catch (e) {}
+    return [a.image]; // single string
+  }
+  return [];
+}
+
+function buildImagesHtml(a) {
+  const imgs = getImages(a);
+  if (!imgs.length) return '';
+
+  const BASE = 'http://localhost/newsletter_php/backend';
+
+  if (imgs.length === 1) {
+    return `
+      <div class="img-gallery single">
+        <img src="${BASE}${imgs[0]}" alt="Article image"
+          onclick="openLightbox('${BASE}${imgs[0]}')"
+          title="Click to enlarge">
+      </div>`;
+  }
+
+  // Multiple images — grid
+  const thumbs = imgs.map(url => `
+    <img src="${BASE}${url}" alt="Article image"
+      onclick="openLightbox('${BASE}${url}')"
+      title="Click to enlarge">`).join('');
+
+  return `
+    <div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">
+        🖼 ${imgs.length} Images <span style="opacity:.6">(click to enlarge)</span>
+      </div>
+      <div class="img-gallery">${thumbs}</div>
+    </div>`;
+}
+
+/* ── Lightbox ──────────────────────────────────────── */
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.remove('hidden');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.add('hidden');
+  document.getElementById('lightbox-img').src = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+/* ── Load Articles ─────────────────────────────────── */
+async function loadArticles() {
+  const container = document.getElementById('articles-container');
+  container.innerHTML = '<div style="text-align:center;padding:60px"><div class="spinner" style="margin:0 auto"></div></div>';
+  try {
+    const articles = await apiFetch('/admin/articles/pending');
+    allArticles = articles;
+    const filtered = currentFilter ? articles.filter(a => a.status === currentFilter) : articles;
+    renderArticles(filtered);
+  } catch(e) {
+    container.innerHTML = `<div class="empty-state"><p>${e.message}</p></div>`;
+  }
+}
+
+async function loadAllArticles() {
+  const container = document.getElementById('articles-container');
+  container.innerHTML = '<div style="text-align:center;padding:60px"><div class="spinner" style="margin:0 auto"></div></div>';
+  try {
+    const newsletters = await apiFetch('/newsletters/');
+    let articles = [];
+    for (const n of newsletters) {
+      const arts = await apiFetch(`/articles/newsletter/${n.id}`);
+      articles = articles.concat(arts);
+    }
+    allArticles = articles;
+    const filtered = currentFilter ? articles.filter(a => a.status === currentFilter) : articles;
+    renderArticles(filtered);
+  } catch(e) {
+    container.innerHTML = `<div class="empty-state"><p>${e.message}</p></div>`;
+  }
+}
+
+function setFilter(status) {
+  currentFilter = status;
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    const labels = { submitted:'Pending', approved:'Approved', rejected:'Rejected', '':'All' };
+    b.classList.toggle('active', b.textContent === (labels[status] || 'All'));
+  });
+  if (status === 'submitted') loadArticles();
+  else loadAllArticles();
+}
+
+/* ── Render ────────────────────────────────────────── */
+function renderArticles(articles) {
+  const container = document.getElementById('articles-container');
+  if (!articles.length) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><h3>No articles here</h3><p>Nothing to review in this category.</p></div>';
+    return;
+  }
+
+  container.innerHTML = articles.map(a => {
+    const imgs     = getImages(a);
+    const imgCount = imgs.length;
+    const imgBadge = imgCount > 0
+      ? `<span class="img-count-badge">🖼 ${imgCount} image${imgCount>1?'s':''}</span>`
+      : '';
+
+    return `
+    <div class="article-review-card fade-in">
+      <div class="arc-header">
+        <div>
+          <div style="font-family:var(--font-display);font-size:18px">
+            ${a.title}${imgBadge}
+          </div>
+          <div style="font-size:13px;color:var(--text-muted);margin-top:3px">
+            By <strong>${a.author}</strong> · ${formatDate(a.created_at)}
+          </div>
+        </div>
+        ${statusBadge(a.status)}
+      </div>
+      <div class="arc-body">
+        ${buildImagesHtml(a)}
+        <div class="arc-content">${a.content}</div>
+        ${a.rejection_reason
+          ? `<div style="margin-top:12px;padding:10px 14px;background:#fff3f3;border-radius:8px;font-size:13px;color:var(--red)">
+               💬 Previous rejection: ${a.rejection_reason}
+             </div>`
+          : ''}
+      </div>
+      <div class="arc-actions">
+        ${a.status !== 'approved' ? `<button class="btn btn-success" onclick="approveArticle('${a.id}')">✅ Approve</button>` : ''}
+        ${a.status !== 'rejected' ? `<button class="btn btn-danger"  onclick="openReject('${a.id}')">❌ Reject</button>`  : ''}
+        <button class="btn btn-outline" onclick="openEdit('${a.id}','${a.title.replace(/'/g,"\\'")}')">✏️ Edit</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Actions ───────────────────────────────────────── */
+async function approveArticle(id) {
+  try {
+    await apiFetch(`/admin/articles/${id}/approve`, { method:'POST' });
+    toast('Article approved and faculty notified! ✅', 'success');
+    setFilter(currentFilter);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function openReject(id) {
+  document.getElementById('reject-id').value    = id;
+  document.getElementById('reject-reason').value = '';
+  document.getElementById('reject-modal').classList.remove('hidden');
+}
+function closeReject() { document.getElementById('reject-modal').classList.add('hidden'); }
+
+async function confirmReject() {
+  const id     = document.getElementById('reject-id').value;
+  const reason = document.getElementById('reject-reason').value.trim();
+  if (!reason) { toast('Please provide a reason', 'warn'); return; }
+  try {
+    await apiFetch(`/admin/articles/${id}/reject`, { method:'POST', body: JSON.stringify({reason}) });
+    toast('Article rejected and faculty notified ❌', 'success');
+    closeReject();
+    setFilter(currentFilter);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function openEdit(id, title) {
+  const article = allArticles.find(a => a.id === id);
+  if (!article) return;
+  showModal({
+    title: `Edit: ${title}`,
+    body: `
+      <div class="form-group">
+        <label class="form-label">Title</label>
+        <input id="ae-title" class="form-control" value="${article.title}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Content</label>
+        <textarea id="ae-content" class="form-control" rows="6">${article.content}</textarea>
+      </div>`,
+    confirmText: 'Save Changes',
+    onConfirm: async (modal) => {
+      try {
+        await apiFetch(`/articles/${id}`, { method:'PUT', body: JSON.stringify({
+          title:   document.getElementById('ae-title').value,
+          content: document.getElementById('ae-content').value
+        })});
+        toast('Article updated!', 'success');
+        modal.remove();
+        setFilter(currentFilter);
+      } catch(e) { toast(e.message, 'error'); }
+    }
+  });
+}
+
+loadArticles();
+</script>
+</body>
+</html>

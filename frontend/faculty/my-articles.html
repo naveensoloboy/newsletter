@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Articles – NMS</title>
+  <link rel="stylesheet" href="../public/css/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="../public/index.html" class="navbar-brand"><div class="brand-icon">📰</div><span>NMS Faculty</span></a>
+    <div class="navbar-actions" id="nav-user"></div>
+    <button class="navbar-toggle" id="sidebar-toggle"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<div class="dashboard-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Faculty Panel</div>
+      <ul class="sidebar-nav">
+        <li><a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a></li>
+        <li><a href="create-article.html"><span class="icon">✏️</span> Create Article</a></li>
+        <li><a href="my-articles.html" class="active"><span class="icon">📄</span> My Articles</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section" style="margin-top:auto;padding-top:16px;border-top:1px solid var(--border)">
+      <ul class="sidebar-nav">
+        <li><a href="../public/index.html"><span class="icon">🌐</span> Public Site</a></li>
+        <li><a href="#" onclick="logout()"><span class="icon">🚪</span> Logout</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+      <div>
+        <h1 style="font-family:var(--font-display);font-size:28px">My Articles</h1>
+        <p class="text-muted" style="margin-top:4px">Track all your submitted articles.</p>
+      </div>
+      <a href="create-article.html" class="btn btn-primary">✏️ Write New</a>
+    </div>
+
+    <!-- Status filter tabs -->
+    <div class="filter-strip" style="margin-bottom:20px">
+      <button class="filter-btn active" onclick="setFilter('')">All</button>
+      <button class="filter-btn" onclick="setFilter('draft')">Draft</button>
+      <button class="filter-btn" onclick="setFilter('submitted')">Pending Review</button>
+      <button class="filter-btn" onclick="setFilter('approved')">Approved</button>
+      <button class="filter-btn" onclick="setFilter('rejected')">Rejected</button>
+    </div>
+
+    <div class="card">
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Author</th>
+              <th>Status</th>
+              <th>Submitted</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="articles-tbody">
+            <tr><td colspan="5" style="text-align:center;padding:40px"><div class="spinner" style="margin:0 auto"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Edit Modal -->
+<div id="edit-modal" class="hidden">
+  <div class="modal-backdrop">
+    <div class="modal" style="max-width:680px">
+      <div class="modal-header">
+        <h4 style="font-family:var(--font-display)">Edit Article</h4>
+        <button class="btn btn-ghost btn-icon" onclick="closeEdit()" style="font-size:18px">×</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-id">
+        <div class="form-group">
+          <label class="form-label">Title <span class="required">*</span></label>
+          <input type="text" id="edit-title" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Author</label>
+          <input type="text" id="edit-author" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Content <span class="required">*</span></label>
+          <textarea id="edit-content" class="form-control" rows="8"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeEdit()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+        <button class="btn btn-accent" onclick="saveAndResubmit()">Save & Resubmit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../public/js/api.js"></script>
+<script>
+Auth.requireAuth('../public/login.html');
+let allArticles = [];
+let currentFilter = '';
+
+async function loadArticles() {
+  try {
+    allArticles = await apiFetch('/articles/my');
+    renderTable(allArticles);
+  } catch(e) {
+    document.getElementById('articles-tbody').innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--red)">${e.message}</td></tr>`;
+  }
+}
+
+function setFilter(status) {
+  currentFilter = status;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase().includes(status) || (status===''&&b.textContent==='All')));
+  renderTable(status ? allArticles.filter(a => a.status === status) : allArticles);
+}
+
+function renderTable(articles) {
+  const tbody = document.getElementById('articles-tbody');
+  if (!articles.length) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state" style="padding:40px 0"><div class="empty-icon">📝</div><h3>No articles found</h3></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = articles.map(a => `
+    <tr class="fade-in">
+      <td>
+        <div style="font-weight:600;font-size:14px">${a.title}</div>
+        ${a.rejection_reason ? `<div style="font-size:12px;color:var(--red);margin-top:2px">💬 ${a.rejection_reason}</div>` : ''}
+      </td>
+      <td style="font-size:13px;color:var(--text-muted)">${a.author}</td>
+      <td>${statusBadge(a.status)}</td>
+      <td style="font-size:13px;color:var(--text-muted)">${formatDate(a.created_at)}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          ${['draft','rejected'].includes(a.status) ? `<button class="btn btn-outline btn-sm" onclick="openEdit('${a.id}')">Edit</button>` : ''}
+          ${a.status==='draft' ? `<button class="btn btn-success btn-sm" onclick="submitArticle('${a.id}')">Submit</button>` : ''}
+          ${['draft','rejected'].includes(a.status) ? `<button class="btn btn-danger btn-sm" onclick="deleteArticle('${a.id}')">Delete</button>` : ''}
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function openEdit(id) {
+  const article = allArticles.find(a => a.id === id);
+  if (!article) return;
+  document.getElementById('edit-id').value      = id;
+  document.getElementById('edit-title').value   = article.title;
+  document.getElementById('edit-author').value  = article.author;
+  document.getElementById('edit-content').value = article.content;
+  document.getElementById('edit-modal').classList.remove('hidden');
+}
+function closeEdit() { document.getElementById('edit-modal').classList.add('hidden'); }
+
+async function saveEdit() {
+  const id      = document.getElementById('edit-id').value;
+  const title   = document.getElementById('edit-title').value.trim();
+  const author  = document.getElementById('edit-author').value.trim();
+  const content = document.getElementById('edit-content').value.trim();
+  try {
+    await apiFetch(`/articles/${id}`, { method:'PUT', body: JSON.stringify({title, author, content}) });
+    toast('Article updated!', 'success');
+    closeEdit();
+    loadArticles();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function saveAndResubmit() {
+  await saveEdit();
+  const id = document.getElementById('edit-id').value;
+  try {
+    await apiFetch(`/articles/${id}/submit`, { method:'POST' });
+    toast('Resubmitted for review! 📤', 'success');
+    loadArticles();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function submitArticle(id) {
+  try {
+    await apiFetch(`/articles/${id}/submit`, { method:'POST' });
+    toast('Article submitted for review!', 'success');
+    loadArticles();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function deleteArticle(id) {
+  showModal({
+    title:'Delete Article',
+    body:'<p>Are you sure? This cannot be undone.</p>',
+    confirmText:'Delete',
+    confirmClass:'btn-danger',
+    onConfirm: async (modal) => {
+      try {
+        await apiFetch(`/articles/${id}`, { method:'DELETE' });
+        toast('Article deleted', 'success');
+        modal.remove();
+        loadArticles();
+      } catch(e) { toast(e.message, 'error'); }
+    }
+  });
+}
+
+loadArticles();
+</script>
+</body>
+</html>

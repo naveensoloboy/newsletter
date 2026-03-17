@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: php-app
+    runtime: docker
+    repo: https://github.com/naveensoloboy/Qutrix.git
+    envVars:
+      - key: DATABASE_URL
+        value: mysql://user:password@host:port/dbname
+    plan: free
