@@ -1,1 +1,28 @@
+<<<<<<< HEAD
+# Dependencies
+backend/vendor/
+node_modules/
+
+# Environment
+.env
+*.env
+
+# Uploads (don't commit uploaded files)
+backend/uploads/*
+!backend/uploads/.htaccess
+backend/tmp/*
+
+# Logs
+*.log
+backend/logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+=======
 /vendor/
+>>>>>>> 62dc9aeeb48a64f2d3b5fca92c21dfb6e05c4b90

@@ -1,3 +1,41 @@
+<<<<<<< HEAD
+# ─── render.yaml ─────────────────────────────────────────────
+# Render Blueprint — defines your web service
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: newsletter-management-system
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # Build from root of repo
+    rootDir: .
+    # Auto-deploy on push to main branch
+    branch: main
+    plan: free
+
+    # ── Environment Variables ────────────────────────────────
+    # Set these in Render Dashboard → Environment tab
+    envVars:
+      - key: MONGO_URI
+        sync: false   # Set manually in dashboard (paste your MongoDB Atlas URI)
+      - key: JWT_SECRET
+        generateValue: true   # Render auto-generates a secure random value
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false   # Set manually in dashboard
+      - key: SMTP_PASSWORD
+        sync: false   # Set manually in dashboard
+      - key: FROM_EMAIL
+        sync: false   # Set manually in dashboard
+      - key: FROM_NAME
+        value: Newsletter Management System
+      - key: FRONTEND_URL
+        sync: false   # Will be set after first deploy (your .onrender.com URL)
+=======
 services:
   - type: web
     name: php-app
@@ -7,3 +45,4 @@ services:
       - key: DATABASE_URL
         value: mysql://user:password@host:port/dbname
     plan: free
+>>>>>>> 62dc9aeeb48a64f2d3b5fca92c21dfb6e05c4b90
