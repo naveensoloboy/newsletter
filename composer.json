@@ -1,0 +1,16 @@
+{
+    "name": "naveen/newsletter_php",
+    "description": "Newsletter Management System",
+    "autoload": {
+        "psr-4": {
+            "Naveen\\NewsletterPhp\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Naveen S",
+            "email": "naveen9222777@gmail.com"
+        }
+    ],
+    "require": {}
+}
