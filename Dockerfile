@@ -18,7 +18,7 @@ RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Set working directory
-WORKDIR /var/www/html
+WORKDIR /var/www/html/frontend/public
 
 # Copy dependency files first
 COPY composer.json composer.lock* ./

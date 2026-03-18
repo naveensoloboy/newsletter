@@ -2,7 +2,7 @@ services:
   - type: web
     name: php-app
     runtime: docker
-    repo: https://github.com/naveensoloboy/Qutrix.git
+    repo: https://github.com/naveensoloboy/newsletter.git
     envVars:
       - key: DATABASE_URL
         value: mysql://user:password@host:port/dbname
